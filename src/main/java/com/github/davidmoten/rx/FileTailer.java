@@ -23,8 +23,9 @@ public class FileTailer {
 
     private final File file;
     private final AtomicLong currentPosition = new AtomicLong();
+    private final long sampleEveryMillis;
 
-    public FileTailer(File file, long startPositionBytes) {
+    public FileTailer(File file, long startPositionBytes, long sampleEveryMillis) {
         if (file == null)
             throw new NullPointerException("file parameter cannot be null");
         if (startPositionBytes < 0)
@@ -32,9 +33,10 @@ public class FileTailer {
 
         this.file = file;
         this.currentPosition.set(startPositionBytes);
+        this.sampleEveryMillis = sampleEveryMillis;
     }
 
-    public Observable<String> tail(long sampleEveryMillis) {
+    public Observable<String> tail() {
 
         return FileObservable
         // watch the file for changes
@@ -97,6 +99,7 @@ public class FileTailer {
     public static class Builder {
         private File file;
         private long startPositionBytes = 0;
+        private long sampleTimeMs = 1000;
 
         public Builder file(File file) {
             this.file = file;
@@ -108,8 +111,13 @@ public class FileTailer {
             return this;
         }
 
+        public Builder sampleTimeMs(long t) {
+            this.sampleTimeMs = t;
+            return this;
+        }
+
         public FileTailer build() {
-            return new FileTailer(file, startPositionBytes);
+            return new FileTailer(file, startPositionBytes, sampleTimeMs);
         }
     }
 

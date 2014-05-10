@@ -36,7 +36,7 @@ public final class FileObservable {
      * @return
      */
     public final static Observable<String> tailFile(File file, long startPosition, long sampleTimeMs) {
-        return new FileTailer(file, startPosition).tail(sampleTimeMs);
+        return new FileTailer(file, startPosition, sampleTimeMs).tail();
     }
 
     /**
