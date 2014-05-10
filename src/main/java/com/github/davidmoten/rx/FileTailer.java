@@ -18,9 +18,8 @@ public class FileTailer {
 
     private final File file;
     private final AtomicLong currentPosition = new AtomicLong();
-    private final long sampleEveryMillis;
 
-    public FileTailer(File file, long startPositionBytes, long sampleEveryMillis) {
+    public FileTailer(File file, long startPositionBytes) {
         if (file == null)
             throw new NullPointerException("file parameter cannot be null");
         if (startPositionBytes < 0)
@@ -28,30 +27,31 @@ public class FileTailer {
 
         this.file = file;
         this.currentPosition.set(startPositionBytes);
-        this.sampleEveryMillis = sampleEveryMillis;
     }
 
     private static enum Event {
         FILE_EVENT;
     }
 
-    public Observable<String> tail() {
+    public Observable<String> tail(long sampleEveryMillis) {
 
         return tail(FileObservable
         // watch the file for changes
                 .from(file, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY,
-                        StandardWatchEventKinds.OVERFLOW));
+                        StandardWatchEventKinds.OVERFLOW)
+                // don't care about the event details, just that there is one
+                .cast(Object.class)
+                // get lines once on subscription so we tail the lines in the
+                // file at startup
+                .startWith(Event.FILE_EVENT)
+                // emit a max of 1 event per sample period
+                .sample(sampleEveryMillis, TimeUnit.MILLISECONDS));
     }
 
     public Observable<String> tail(Observable<?> events) {
         return events
         // don't care about the event details, just that there is one
                 .map(TO_FILE_EVENT)
-                // get lines once on subscription so we tail the lines in the
-                // file at startup
-                .startWith(Event.FILE_EVENT)
-                // emit a max of 1 event per sample period
-                .sample(sampleEveryMillis, TimeUnit.MILLISECONDS)
                 // emit any new lines
                 .concatMap(reportNewLines(file, currentPosition));
     }
@@ -102,7 +102,6 @@ public class FileTailer {
     public static class Builder {
         private File file;
         private long startPositionBytes = 0;
-        private long sampleTimeMs = 1000;
 
         public Builder file(File file) {
             this.file = file;
@@ -114,13 +113,8 @@ public class FileTailer {
             return this;
         }
 
-        public Builder sampleTimeMs(long t) {
-            this.sampleTimeMs = t;
-            return this;
-        }
-
         public FileTailer build() {
-            return new FileTailer(file, startPositionBytes, sampleTimeMs);
+            return new FileTailer(file, startPositionBytes);
         }
     }
 

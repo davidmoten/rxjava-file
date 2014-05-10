@@ -26,9 +26,9 @@ public class FileTailerTest {
         log.delete();
         log.createNewFile();
         append(log, "a0");
-        FileTailer tailer = FileTailer.builder().file(log).startPositionBytes(0).sampleTimeMs(50).build();
+        FileTailer tailer = FileTailer.builder().file(log).startPositionBytes(0).build();
         final List<String> list = new ArrayList<String>();
-        Subscription sub = tailer.tail().subscribeOn(Schedulers.io()).subscribe(new Action1<String>() {
+        Subscription sub = tailer.tail(50).subscribeOn(Schedulers.io()).subscribe(new Action1<String>() {
             @Override
             public void call(String line) {
                 System.out.println("received: '" + line + "'");

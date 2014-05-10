@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchEvent.Kind;
 import java.nio.file.WatchKey;
@@ -36,7 +37,7 @@ public final class FileObservable {
      * @return
      */
     public final static Observable<String> tailFile(File file, long startPosition, long sampleTimeMs) {
-        return new FileTailer(file, startPosition, sampleTimeMs).tail();
+        return new FileTailer(file, startPosition).tail(sampleTimeMs);
     }
 
     /**
@@ -122,8 +123,10 @@ public final class FileObservable {
                 final boolean ok;
                 if (file.isDirectory())
                     ok = true;
+                else if (StandardWatchEventKinds.OVERFLOW.equals(event.kind()))
+                    // TODO allow overflow events through?
+                    ok = true;
                 else {
-                    // TODO what happens for Overflow?
                     Object context = event.context();
                     if (context != null && context instanceof Path) {
                         Path p = (Path) context;
