@@ -7,7 +7,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -16,10 +15,6 @@ import rx.functions.Action1;
 import rx.functions.Func1;
 
 public class FileTailer {
-
-    private static enum Event {
-        EVENT;
-    }
 
     private final File file;
     private final AtomicLong currentPosition = new AtomicLong();
@@ -36,28 +31,36 @@ public class FileTailer {
         this.sampleEveryMillis = sampleEveryMillis;
     }
 
+    private static enum Event {
+        FILE_EVENT;
+    }
+
     public Observable<String> tail() {
 
-        return FileObservable
+        return tail(FileObservable
         // watch the file for changes
                 .from(file, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY,
-                        StandardWatchEventKinds.OVERFLOW)
-                // don't care about the event details, just that there is one
-                .map(TO_EVENT)
+                        StandardWatchEventKinds.OVERFLOW));
+    }
+
+    public Observable<String> tail(Observable<?> events) {
+        return events
+        // don't care about the event details, just that there is one
+                .map(TO_FILE_EVENT)
                 // get lines once on subscription so we tail the lines in the
                 // file at startup
-                .startWith(Event.EVENT)
+                .startWith(Event.FILE_EVENT)
                 // emit a max of 1 event per sample period
                 .sample(sampleEveryMillis, TimeUnit.MILLISECONDS)
                 // emit any new lines
                 .concatMap(reportNewLines(file, currentPosition));
     }
 
-    private static final Func1<WatchEvent<?>, Event> TO_EVENT = new Func1<WatchEvent<?>, Event>() {
+    private static final Func1<Object, Event> TO_FILE_EVENT = new Func1<Object, Event>() {
 
         @Override
-        public Event call(WatchEvent<?> event) {
-            return Event.EVENT;
+        public Event call(Object event) {
+            return Event.FILE_EVENT;
         }
     };
 
