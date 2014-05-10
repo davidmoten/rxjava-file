@@ -35,7 +35,7 @@ public final class FileObservable {
      * @param sampleTimeMs
      * @return
      */
-    public static Observable<String> tailFile(File file, long startPosition, long sampleTimeMs) {
+    public final static Observable<String> tailFile(File file, long startPosition, long sampleTimeMs) {
         return new FileTailer(file, startPosition).tail(sampleTimeMs);
     }
 
@@ -46,7 +46,7 @@ public final class FileObservable {
      * @param watchService
      * @return
      */
-    public static Observable<WatchEvent<?>> from(WatchService watchService) {
+    public final static Observable<WatchEvent<?>> from(WatchService watchService) {
         return Observable.create(new WatchServiceOnSubscribe(watchService));
     }
 
@@ -64,7 +64,7 @@ public final class FileObservable {
      * @return
      */
     @SafeVarargs
-    public static Observable<WatchEvent<?>> from(final File file, Kind<?>... kinds) {
+    public final static Observable<WatchEvent<?>> from(final File file, Kind<?>... kinds) {
         return watchService(file, kinds).flatMap(TO_WATCH_EVENTS).filter(onlyRelatedTo(file));
     }
 
@@ -77,7 +77,7 @@ public final class FileObservable {
      * @return
      */
     @SafeVarargs
-    public static Observable<WatchService> watchService(final File file, final Kind<?>... kinds) {
+    public final static Observable<WatchService> watchService(final File file, final Kind<?>... kinds) {
         return Observable.create(new OnSubscribe<WatchService>() {
 
             @Override
@@ -96,7 +96,7 @@ public final class FileObservable {
         });
     }
 
-    private static Path getBasePath(final File file) {
+    private final static Path getBasePath(final File file) {
         final Path path;
         if (file.exists() && file.isDirectory())
             path = Paths.get(file.toURI());
@@ -113,7 +113,7 @@ public final class FileObservable {
      * @param file
      * @return
      */
-    private static Func1<WatchEvent<?>, Boolean> onlyRelatedTo(final File file) {
+    private final static Func1<WatchEvent<?>, Boolean> onlyRelatedTo(final File file) {
         return new Func1<WatchEvent<?>, Boolean>() {
 
             @Override
@@ -221,7 +221,7 @@ public final class FileObservable {
 
     }
 
-    private static Subscription createSubscriptionToCloseWatchService(final WatchService watchService,
+    private final static Subscription createSubscriptionToCloseWatchService(final WatchService watchService,
             final AtomicBoolean subscribed, final Subscriber<? super WatchEvent<?>> subscriber) {
         return new Subscription() {
 
@@ -246,7 +246,7 @@ public final class FileObservable {
         };
     }
 
-    private static Func1<WatchService, Observable<WatchEvent<?>>> TO_WATCH_EVENTS = new Func1<WatchService, Observable<WatchEvent<?>>>() {
+    private final static Func1<WatchService, Observable<WatchEvent<?>>> TO_WATCH_EVENTS = new Func1<WatchService, Observable<WatchEvent<?>>>() {
 
         @Override
         public Observable<WatchEvent<?>> call(WatchService watchService) {
