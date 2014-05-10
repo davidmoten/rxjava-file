@@ -12,6 +12,8 @@ import java.util.List;
 
 import org.junit.Test;
 
+import com.github.davidmoten.rx.FileTailer;
+
 import rx.Subscription;
 import rx.functions.Action1;
 import rx.schedulers.Schedulers;

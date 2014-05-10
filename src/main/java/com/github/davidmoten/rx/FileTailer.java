@@ -1,7 +1,7 @@
-package com.github.davidmoten.util.rx;
+package com.github.davidmoten.rx;
 
-import static com.github.davidmoten.util.rx.StringObservable2.lines;
-import static com.github.davidmoten.util.rx.StringObservable2.trimEmpty;
+import static com.github.davidmoten.rx.StringObservable2.lines;
+import static com.github.davidmoten.rx.StringObservable2.trimEmpty;
 
 import java.io.File;
 import java.io.FileReader;

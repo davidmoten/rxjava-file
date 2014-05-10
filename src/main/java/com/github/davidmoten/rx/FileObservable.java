@@ -1,4 +1,4 @@
-package com.github.davidmoten.util.rx;
+package com.github.davidmoten.rx;
 
 import java.io.File;
 import java.io.IOException;
@@ -157,10 +157,10 @@ public final class FileObservable {
             }
             subscriber.add(createSubscriptionToCloseWatchService(watchService, subscribed, subscriber));
 
-            reportEvents(subscriber);
+            emitEvents(subscriber);
         }
 
-        private void reportEvents(Subscriber<? super WatchEvent<?>> subscriber) {
+        private void emitEvents(Subscriber<? super WatchEvent<?>> subscriber) {
             // get the first event before looping
             WatchKey key = nextKey(subscriber);
 

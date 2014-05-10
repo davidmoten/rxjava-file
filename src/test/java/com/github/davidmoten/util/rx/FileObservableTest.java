@@ -21,6 +21,8 @@ import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
+import com.github.davidmoten.rx.FileObservable;
+
 import rx.Observable;
 import rx.Observer;
 import rx.Subscription;

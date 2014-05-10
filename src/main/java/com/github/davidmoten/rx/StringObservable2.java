@@ -1,4 +1,4 @@
-package com.github.davidmoten.util.rx;
+package com.github.davidmoten.rx;
 
 import java.io.Reader;
 import java.util.List;

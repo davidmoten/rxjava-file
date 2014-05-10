@@ -8,6 +8,8 @@ import java.util.List;
 
 import org.junit.Test;
 
+import com.github.davidmoten.rx.StringObservable2;
+
 import rx.Observable;
 
 public class StringObservable2Test {
