@@ -10,6 +10,7 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchEvent.Kind;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import rx.Observable;
@@ -17,6 +18,8 @@ import rx.Observable.OnSubscribe;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.functions.Func1;
+
+import com.github.davidmoten.rx.OperatorFileTailer.Event;
 
 /**
  * Observable utility methods related to {@link File}.
@@ -37,7 +40,17 @@ public final class FileObservable {
      * @return
      */
     public final static Observable<String> tailFile(File file, long startPosition, long sampleTimeMs) {
-        return new FileTailer(file, startPosition).tail(sampleTimeMs);
+        return from(file, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY,
+                StandardWatchEventKinds.OVERFLOW)
+        // don't care about the event details, just that there is one
+                .cast(Object.class)
+                // get lines once on subscription so we tail the lines in the
+                // file at startup
+                .startWith(Event.FILE_EVENT)
+                // emit a max of 1 event per sample period
+                .sample(sampleTimeMs, TimeUnit.MILLISECONDS)
+                // tail file triggered by events
+                .lift(new OperatorFileTailer(file, startPosition));
     }
 
     /**

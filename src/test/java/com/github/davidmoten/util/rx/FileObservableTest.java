@@ -7,11 +7,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchEvent.Kind;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -21,12 +24,13 @@ import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
-import com.github.davidmoten.rx.FileObservable;
-
 import rx.Observable;
 import rx.Observer;
 import rx.Subscription;
+import rx.functions.Action1;
 import rx.schedulers.Schedulers;
+
+import com.github.davidmoten.rx.FileObservable;
 
 public class FileObservableTest {
 
@@ -102,4 +106,42 @@ public class FileObservableTest {
         Thread.sleep(100);
         assertEquals(0, errorCount.get());
     }
+
+    @Test
+    public void testFileTailingFromStartOfFile() throws InterruptedException, IOException {
+        File log = new File("target/test.log");
+        log.delete();
+        log.createNewFile();
+        append(log, "a0");
+        Observable<String> tailer = FileObservable.tailFile(log, 0, 50);
+        final List<String> list = new ArrayList<String>();
+        Subscription sub = tailer.subscribeOn(Schedulers.io()).subscribe(new Action1<String>() {
+            @Override
+            public void call(String line) {
+                System.out.println("received: '" + line + "'");
+                list.add(line);
+            }
+        });
+
+        Thread.sleep(500);
+        append(log, "a1");
+        append(log, "a2");
+        Thread.sleep(500);
+        assertEquals(Arrays.asList("a0", "a1", "a2"), list);
+        sub.unsubscribe();
+    }
+
+    private static void append(File file, String line) {
+        try {
+            FileOutputStream fos = new FileOutputStream(file, true);
+            fos.write(line.getBytes());
+            fos.write('\n');
+            fos.close();
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }
