@@ -30,8 +30,6 @@ import rx.Subscription;
 import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 
-import com.github.davidmoten.rx.FileObservable;
-
 public class FileObservableTest {
 
     @Test
@@ -124,6 +122,31 @@ public class FileObservableTest {
         });
 
         Thread.sleep(500);
+        append(log, "a1");
+        append(log, "a2");
+        Thread.sleep(500);
+        assertEquals(Arrays.asList("a0", "a1", "a2"), list);
+        sub.unsubscribe();
+    }
+
+    @Test
+    public void testFileTailingWhenFileIsCreatedAfterSubscription() throws InterruptedException, IOException {
+        File log = new File("target/test.log");
+        log.delete();
+
+        append(log, "a0");
+        Observable<String> tailer = FileObservable.tailFile(log, 0, 50);
+        final List<String> list = new ArrayList<String>();
+        Subscription sub = tailer.subscribeOn(Schedulers.io()).subscribe(new Action1<String>() {
+            @Override
+            public void call(String line) {
+                System.out.println("received: '" + line + "'");
+                list.add(line);
+            }
+        });
+
+        Thread.sleep(500);
+        log.createNewFile();
         append(log, "a1");
         append(log, "a2");
         Thread.sleep(500);
