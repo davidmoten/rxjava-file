@@ -20,7 +20,6 @@ import rx.Subscription;
 import rx.functions.Func1;
 
 import com.github.davidmoten.rx.operators.OperatorFileTailer;
-import com.github.davidmoten.rx.operators.OperatorFileTailer.Event;
 
 /**
  * Observable utility methods related to {@link File}.
@@ -47,7 +46,7 @@ public final class FileObservable {
                 .cast(Object.class)
                 // get lines once on subscription so we tail the lines in the
                 // file at startup
-                .startWith(Event.FILE_EVENT)
+                .startWith(new Object())
                 // emit a max of 1 event per sample period
                 .sample(sampleTimeMs, TimeUnit.MILLISECONDS)
                 // tail file triggered by events

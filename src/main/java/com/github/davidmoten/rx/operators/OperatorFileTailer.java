@@ -21,10 +21,6 @@ public class OperatorFileTailer implements Operator<String, Object> {
     private final File file;
     private final AtomicLong currentPosition = new AtomicLong();
 
-    public static enum Event {
-        FILE_EVENT;
-    }
-
     public OperatorFileTailer(File file, long startPosition) {
         this.file = file;
         this.currentPosition.set(startPosition);
@@ -53,7 +49,7 @@ public class OperatorFileTailer implements Operator<String, Object> {
                     // as each line produced increment the current
                     // position with its length plus one for the new
                     // line separator
-                            .doOnNext(moveCurrentPositionByStringLengthPlusOne(currentPosition));
+                            .doOnNext(moveCurrentPositionByStringLengthPlusOneExceptForFirst(currentPosition));
                 } else {
                     // file has shrunk in size, reset the current position to
                     // detect when it grows next
@@ -64,7 +60,8 @@ public class OperatorFileTailer implements Operator<String, Object> {
         };
     }
 
-    private static Action1<String> moveCurrentPositionByStringLengthPlusOne(final AtomicLong currentPosition) {
+    private static Action1<String> moveCurrentPositionByStringLengthPlusOneExceptForFirst(
+            final AtomicLong currentPosition) {
         return new Action1<String>() {
             boolean firstTime = true;
 
