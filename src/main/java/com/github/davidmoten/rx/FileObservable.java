@@ -35,8 +35,11 @@ public final class FileObservable {
      * inordinate number of file reads to pick up changes.
      * 
      * @param file
+     *            the file to tail
      * @param startPosition
+     *            start tailing file at position in bytes
      * @param sampleTimeMs
+     *            sample time in millis
      * @return
      */
     public final static Observable<String> tailFile(File file, long startPosition, long sampleTimeMs) {
@@ -58,6 +61,7 @@ public final class FileObservable {
      * {@link WatchService}.
      * 
      * @param watchService
+     *            {@link WatchService} to generate events for
      * @return
      */
     public final static Observable<WatchEvent<?>> from(WatchService watchService) {
@@ -74,7 +78,9 @@ public final class FileObservable {
      * kinds.
      * 
      * @param file
+     *            file to watch
      * @param kinds
+     *            event kinds to watch for and emit
      * @return
      */
     @SafeVarargs
@@ -87,7 +93,9 @@ public final class FileObservable {
      * kinds.
      * 
      * @param file
+     *            the file to watch
      * @param kinds
+     *            event kinds to watch for
      * @return
      */
     @SafeVarargs
@@ -125,6 +133,7 @@ public final class FileObservable {
      * Delete events.
      * 
      * @param file
+     *            the file to restrict events to
      * @return
      */
     private final static Func1<WatchEvent<?>, Boolean> onlyRelatedTo(final File file) {
