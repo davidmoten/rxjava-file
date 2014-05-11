@@ -11,6 +11,7 @@ import rx.Subscription;
 import rx.functions.Action1;
 import rx.subjects.PublishSubject;
 
+//TODO remove once happy that rxjava-core has coverage
 public class SampleTest {
 
     @Test
