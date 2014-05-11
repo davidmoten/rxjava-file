@@ -1,4 +1,4 @@
-package com.github.davidmoten.util.rx;
+package com.github.davidmoten.rx;
 
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;

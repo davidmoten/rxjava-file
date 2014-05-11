@@ -1,4 +1,4 @@
-package com.github.davidmoten.util.rx;
+package com.github.davidmoten.rx;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
