@@ -17,11 +17,23 @@ import rx.observables.StringObservable;
 import rx.observers.Subscribers;
 import rx.subjects.PublishSubject;
 
+/**
+ * Reacts to source events by emitting new lines written to a file since the
+ * last source event.
+ */
 public class OperatorFileTailer implements Operator<String, Object> {
 
     private final File file;
     private final AtomicLong currentPosition = new AtomicLong();
 
+    /**
+     * Constructor.
+     * 
+     * @param file
+     *            text file to tail
+     * @param startPosition
+     *            start tailing the file after this many bytes
+     */
     public OperatorFileTailer(File file, long startPosition) {
         this.file = file;
         this.currentPosition.set(startPosition);

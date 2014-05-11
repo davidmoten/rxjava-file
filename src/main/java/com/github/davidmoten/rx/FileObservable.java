@@ -18,6 +18,7 @@ import rx.Observable.OnSubscribe;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.functions.Func1;
+import rx.operators.OperatorConcat;
 
 import com.github.davidmoten.rx.operators.OperatorFileTailer;
 
@@ -96,6 +97,7 @@ public final class FileObservable {
 
             @Override
             public void call(Subscriber<? super WatchService> subscriber) {
+                OperatorConcat c;
                 final Path path = getBasePath(file);
                 try {
                     WatchService watchService = path.getFileSystem().newWatchService();
