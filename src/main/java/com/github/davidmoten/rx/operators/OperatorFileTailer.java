@@ -1,4 +1,4 @@
-package com.github.davidmoten.rx;
+package com.github.davidmoten.rx.operators;
 
 import static com.github.davidmoten.rx.StringObservable2.lines;
 import static com.github.davidmoten.rx.StringObservable2.trimEmpty;

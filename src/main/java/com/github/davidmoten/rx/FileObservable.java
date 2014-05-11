@@ -19,7 +19,8 @@ import rx.Subscriber;
 import rx.Subscription;
 import rx.functions.Func1;
 
-import com.github.davidmoten.rx.OperatorFileTailer.Event;
+import com.github.davidmoten.rx.operators.OperatorFileTailer;
+import com.github.davidmoten.rx.operators.OperatorFileTailer.Event;
 
 /**
  * Observable utility methods related to {@link File}.
