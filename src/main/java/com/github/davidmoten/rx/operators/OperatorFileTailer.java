@@ -47,14 +47,19 @@ public class OperatorFileTailer implements Operator<String, Object> {
         return new Func1<Object, Observable<String>>() {
             @Override
             public Observable<String> call(Object event) {
-                if (file.length() > currentPosition.get()) {
+                long length = file.length();
+                if (length > currentPosition.get()) {
                     return trimEmpty(lines(createReader(file, currentPosition.get())))
                     // as each line produced increment the current
                     // position with its length plus one for the new
                     // line separator
                             .doOnNext(moveCurrentPositionByStringLengthPlusOne(currentPosition));
-                } else
+                } else {
+                    // file has shrunk in size, reset the current position to
+                    // detect when it grows next
+                    currentPosition.set(length);
                     return Observable.empty();
+                }
             }
         };
     }
