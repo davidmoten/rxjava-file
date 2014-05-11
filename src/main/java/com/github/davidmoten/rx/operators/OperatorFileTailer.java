@@ -35,7 +35,11 @@ public class OperatorFileTailer implements Operator<String, Object> {
         final PublishSubject<? super Object> subject = PublishSubject.create();
         Subscriber<? super Object> result = Subscribers.from(subject);
         subscriber.add(result);
-        subject.concatMap(reportNewLines(file, currentPosition)).unsafeSubscribe(subscriber);
+        subject
+        // report new lines for each event
+        .concatMap(reportNewLines(file, currentPosition))
+        // subscribe
+                .unsafeSubscribe(subscriber);
         return result;
     }
 
