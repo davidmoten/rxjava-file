@@ -76,8 +76,8 @@ public final class FileObservable {
      */
     public final static Observable<String> tailTextFile(File file, long startPosition, long sampleTimeMs,
             Charset charset) {
-        return StringObservable.split(StringObservable.decode(tailFile(file, startPosition, sampleTimeMs), charset),
-                "\n");
+        Observable<String> strings = StringObservable.decode(tailFile(file, startPosition, sampleTimeMs), charset);
+        return StringObservable.split(strings, "\n");
     }
 
     /**
@@ -109,7 +109,11 @@ public final class FileObservable {
      */
     @SafeVarargs
     public final static Observable<WatchEvent<?>> from(final File file, Kind<?>... kinds) {
-        return watchService(file, kinds).flatMap(TO_WATCH_EVENTS).filter(onlyRelatedTo(file));
+        return watchService(file, kinds)
+        // emit events from the WatchService
+                .flatMap(TO_WATCH_EVENTS)
+                // restrict to events related to the file
+                .filter(onlyRelatedTo(file));
     }
 
     /**
