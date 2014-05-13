@@ -111,7 +111,7 @@ public class FileObservableTest {
         log.delete();
         log.createNewFile();
         append(log, "a0");
-        Observable<String> tailer = FileObservable.tailFile(log, 0, 50);
+        Observable<String> tailer = FileObservable.tailTextFile(log, 0, 50);
         final List<String> list = new ArrayList<String>();
         Subscription sub = tailer.subscribeOn(Schedulers.io()).subscribe(new Action1<String>() {
             @Override
@@ -135,7 +135,7 @@ public class FileObservableTest {
         log.delete();
 
         append(log, "a0");
-        Observable<String> tailer = FileObservable.tailFile(log, 0, 50);
+        Observable<String> tailer = FileObservable.tailTextFile(log, 0, 50);
         final List<String> list = new ArrayList<String>();
         Subscription sub = tailer.subscribeOn(Schedulers.io()).subscribe(new Action1<String>() {
             @Override

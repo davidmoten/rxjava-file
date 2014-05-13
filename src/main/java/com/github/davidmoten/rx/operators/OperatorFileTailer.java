@@ -2,13 +2,15 @@ package com.github.davidmoten.rx.operators;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 
 import rx.Observable;
-import rx.Observable.OnSubscribe;
 import rx.Observable.Operator;
 import rx.Subscriber;
+import rx.functions.Action1;
 import rx.functions.Func1;
+import rx.observables.StringObservable;
 import rx.observers.Subscribers;
 import rx.subjects.PublishSubject;
 
@@ -51,26 +53,33 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
         return new Func1<Object, Observable<byte[]>>() {
             @Override
             public Observable<byte[]> call(Object event) {
-                return Observable.create(new OnSubscribe<byte[]>() {
-
-                    @Override
-                    public void call(Subscriber<? super byte[]> subscriber) {
-                        long length = file.length();
-                        if (length > currentPosition.get()) {
-                            FileInputStream fis = new FileInputStream(file);
-                            byte[] bytes = new byte[8 * 1024];
-                            int count;
-                            while (count = (fis.read(bytes)) != -1) {
-                                
-                            }
+                long length = file.length();
+                if (length > currentPosition.get()) {
+                    try {
+                        FileInputStream fis = new FileInputStream(file);
+                        fis.skip(currentPosition.get());
+                        // TODO allow option to vary buffer size?
+                        return StringObservable.from(fis).doOnNext(moveCurrentPosition(currentPosition));
+                    } catch (IOException e) {
+                        return Observable.error(e);
                     }
-                });
-                                } else {
-                    // file has shrunk in size, reset the current position to
+                } else {
+                    // file has shrunk in size, reset the current
+                    // position to
                     // detect when it grows next
                     currentPosition.set(length);
                     return Observable.empty();
                 }
+            }
+
+        };
+    }
+
+    private static Action1<byte[]> moveCurrentPosition(final AtomicLong currentPosition) {
+        return new Action1<byte[]>() {
+            @Override
+            public void call(byte[] bytes) {
+                currentPosition.addAndGet(bytes.length);
             }
         };
     }

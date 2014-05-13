@@ -2,6 +2,7 @@ package com.github.davidmoten.rx;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardWatchEventKinds;
@@ -14,6 +15,7 @@ import rx.Observable;
 import rx.Observable.OnSubscribe;
 import rx.Subscriber;
 import rx.functions.Func1;
+import rx.observables.StringObservable;
 
 import com.github.davidmoten.rx.operators.OperatorFileTailer;
 import com.github.davidmoten.rx.operators.OperatorWatchServiceEvents;
@@ -39,18 +41,29 @@ public final class FileObservable {
      *            sample time in millis
      * @return
      */
-    public final static Observable<String> tailFile(File file, long startPosition, long sampleTimeMs) {
+    public final static Observable<byte[]> tailFile(File file, long startPosition, long sampleTimeMs) {
         return from(file, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY,
                 StandardWatchEventKinds.OVERFLOW)
         // don't care about the event details, just that there is one
                 .cast(Object.class)
-                // get lines once on subscription so we tail the lines in the
+                // get lines once on subscription so we tail the lines
+                // in the
                 // file at startup
                 .startWith(new Object())
                 // emit a max of 1 event per sample period
                 .sample(sampleTimeMs, TimeUnit.MILLISECONDS)
                 // tail file triggered by events
                 .lift(new OperatorFileTailer(file, startPosition));
+    }
+
+    public final static Observable<String> tailTextFile(File file, long startPosition, long sampleTimeMs,
+            Charset charset) {
+        return StringObservable.split(StringObservable.decode(tailFile(file, startPosition, sampleTimeMs), charset),
+                "\n");
+    }
+
+    public final static Observable<String> tailTextFile(File file, long startPosition, long sampleTimeMs) {
+        return StringObservable.decode(tailFile(file, startPosition, sampleTimeMs), Charset.defaultCharset());
     }
 
     /**
