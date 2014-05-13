@@ -28,10 +28,10 @@ public final class FileObservable {
     /**
      * Returns an {@link Observable} that uses NIO WatchService (and a dedicated
      * thread) to push modify events to an observable that reads and reports new
-     * lines to a subscriber. The NIO WatchService events are sampled according
-     * to <code>sampleTimeMs</code> so that lots of discrete activity on a file
-     * (for example a log file with very frequent entries) does not prompt an
-     * inordinate number of file reads to pick up changes.
+     * sequences of bytes to a subscriber. The NIO WatchService events are
+     * sampled according to <code>sampleTimeMs</code> so that lots of discrete
+     * activity on a file (for example a log file with very frequent entries)
+     * does not prompt an inordinate number of file reads to pick up changes.
      * 
      * @param file
      *            the file to tail
@@ -56,6 +56,24 @@ public final class FileObservable {
                 .lift(new OperatorFileTailer(file, startPosition));
     }
 
+    /**
+     * Returns an {@link Observable} that uses NIO WatchService (and a dedicated
+     * thread) to push modify events to an observable that reads and reports new
+     * lines to a subscriber. The NIO WatchService events are sampled according
+     * to <code>sampleTimeMs</code> so that lots of discrete activity on a file
+     * (for example a log file with very frequent entries) does not prompt an
+     * inordinate number of file reads to pick up changes.
+     * 
+     * @param file
+     *            the file to tail
+     * @param startPosition
+     *            start tailing file at position in bytes
+     * @param sampleTimeMs
+     *            sample time in millis
+     * @param charset
+     *            the character set to use to decode the bytes to a string
+     * @return
+     */
     public final static Observable<String> tailTextFile(File file, long startPosition, long sampleTimeMs,
             Charset charset) {
         return StringObservable.split(StringObservable.decode(tailFile(file, startPosition, sampleTimeMs), charset),
