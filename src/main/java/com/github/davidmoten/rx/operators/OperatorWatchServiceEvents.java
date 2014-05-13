@@ -40,7 +40,8 @@ public class OperatorWatchServiceEvents implements Operator<WatchEvent<?>, Watch
                             "WatchService closed. You can only subscribe once to a WatchService."));
                     return;
                 }
-                subscriber.add(createSubscriptionToCloseWatchService(watchService, subscribed, subscriber));
+                subscriber.add(createSubscriptionToCloseWatchService(watchService, subscribed,
+                        subscriber));
                 emitEvents(watchService, subscriber, subscribed);
             }
         });
@@ -48,8 +49,8 @@ public class OperatorWatchServiceEvents implements Operator<WatchEvent<?>, Watch
         return result;
     }
 
-    private static void emitEvents(WatchService watchService, Subscriber<? super WatchEvent<?>> subscriber,
-            AtomicBoolean subscribed) {
+    private static void emitEvents(WatchService watchService,
+            Subscriber<? super WatchEvent<?>> subscriber, AtomicBoolean subscribed) {
         // get the first event before looping
         WatchKey key = nextKey(watchService, subscriber, subscribed);
 
@@ -76,8 +77,8 @@ public class OperatorWatchServiceEvents implements Operator<WatchEvent<?>, Watch
         }
     }
 
-    private static WatchKey nextKey(WatchService watchService, Subscriber<? super WatchEvent<?>> subscriber,
-            AtomicBoolean subscribed) {
+    private static WatchKey nextKey(WatchService watchService,
+            Subscriber<? super WatchEvent<?>> subscriber, AtomicBoolean subscribed) {
         try {
             // this command blocks but unsubscribe close the watch
             // service and interrupt it
@@ -109,8 +110,9 @@ public class OperatorWatchServiceEvents implements Operator<WatchEvent<?>, Watch
         }
     }
 
-    private final static Subscription createSubscriptionToCloseWatchService(final WatchService watchService,
-            final AtomicBoolean subscribed, final Subscriber<? super WatchEvent<?>> subscriber) {
+    private final static Subscription createSubscriptionToCloseWatchService(
+            final WatchService watchService, final AtomicBoolean subscribed,
+            final Subscriber<? super WatchEvent<?>> subscriber) {
         return new Subscription() {
 
             @Override

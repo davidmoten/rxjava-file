@@ -38,30 +38,32 @@ public class FileObservableTest {
         File file = new File("target/does-not-exist");
         Observable<WatchEvent<?>> events = FileObservable.from(file, ENTRY_MODIFY);
         final CountDownLatch latch = new CountDownLatch(1);
-        Subscription sub = events.subscribeOn(Schedulers.io()).subscribe(new Observer<WatchEvent<?>>() {
+        Subscription sub = events.subscribeOn(Schedulers.io()).subscribe(
+                new Observer<WatchEvent<?>>() {
 
-            @Override
-            public void onCompleted() {
-                latch.countDown();
-            }
+                    @Override
+                    public void onCompleted() {
+                        latch.countDown();
+                    }
 
-            @Override
-            public void onError(Throwable e) {
-                latch.countDown();
-                e.printStackTrace();
-            }
+                    @Override
+                    public void onError(Throwable e) {
+                        latch.countDown();
+                        e.printStackTrace();
+                    }
 
-            @Override
-            public void onNext(WatchEvent<?> arg0) {
-                latch.countDown();
-            }
-        });
+                    @Override
+                    public void onNext(WatchEvent<?> arg0) {
+                        latch.countDown();
+                    }
+                });
         assertFalse(latch.await(100, TimeUnit.MILLISECONDS));
         sub.unsubscribe();
     }
 
     @Test
-    public void testCreateAndModifyEventsForANonDirectoryFile() throws InterruptedException, IOException {
+    public void testCreateAndModifyEventsForANonDirectoryFile() throws InterruptedException,
+            IOException {
         File file = new File("target/f");
         file.delete();
         Observable<WatchEvent<?>> events = FileObservable.from(file, ENTRY_CREATE, ENTRY_MODIFY);
@@ -70,25 +72,26 @@ public class FileObservableTest {
         final List<Kind<?>> eventKinds = Mockito.mock(List.class);
         InOrder inOrder = Mockito.inOrder(eventKinds);
         final AtomicInteger errorCount = new AtomicInteger(0);
-        Subscription sub = events.subscribeOn(Schedulers.io()).subscribe(new Observer<WatchEvent<?>>() {
+        Subscription sub = events.subscribeOn(Schedulers.io()).subscribe(
+                new Observer<WatchEvent<?>>() {
 
-            @Override
-            public void onCompleted() {
-                System.out.println("completed");
-            }
+                    @Override
+                    public void onCompleted() {
+                        System.out.println("completed");
+                    }
 
-            @Override
-            public void onError(Throwable e) {
-                errorCount.incrementAndGet();
-            }
+                    @Override
+                    public void onError(Throwable e) {
+                        errorCount.incrementAndGet();
+                    }
 
-            @Override
-            public void onNext(WatchEvent<?> event) {
-                System.out.println("event=" + event);
-                eventKinds.add(event.kind());
-                latch.countDown();
-            }
-        });
+                    @Override
+                    public void onNext(WatchEvent<?> event) {
+                        System.out.println("event=" + event);
+                        eventKinds.add(event.kind());
+                        latch.countDown();
+                    }
+                });
         // sleep long enough for WatchService to start
         Thread.sleep(1000);
         file.createNewFile();
@@ -101,6 +104,7 @@ public class FileObservableTest {
         inOrder.verify(eventKinds).add(StandardWatchEventKinds.ENTRY_CREATE);
         inOrder.verify(eventKinds).add(StandardWatchEventKinds.ENTRY_MODIFY);
         inOrder.verifyNoMoreInteractions();
+
         sub.unsubscribe();
         Thread.sleep(100);
         assertEquals(0, errorCount.get());
@@ -112,7 +116,8 @@ public class FileObservableTest {
         log.delete();
         log.createNewFile();
         append(log, "a0");
-        Observable<String> tailer = FileObservable.tailTextFile(log, 0, 50, Charset.forName("UTF-8"));
+        Observable<String> tailer = FileObservable.tailTextFile(log, 0, 50,
+                Charset.forName("UTF-8"));
         final List<String> list = new ArrayList<String>();
         Subscription sub = tailer.subscribeOn(Schedulers.io()).subscribe(new Action1<String>() {
             @Override
@@ -131,12 +136,14 @@ public class FileObservableTest {
     }
 
     @Test
-    public void testFileTailingWhenFileIsCreatedAfterSubscription() throws InterruptedException, IOException {
+    public void testFileTailingWhenFileIsCreatedAfterSubscription() throws InterruptedException,
+            IOException {
         File log = new File("target/test.log");
         log.delete();
 
         append(log, "a0");
-        Observable<String> tailer = FileObservable.tailTextFile(log, 0, 50, Charset.forName("UTF-8"));
+        Observable<String> tailer = FileObservable.tailTextFile(log, 0, 50,
+                Charset.forName("UTF-8"));
         final List<String> list = new ArrayList<String>();
         Subscription sub = tailer.subscribeOn(Schedulers.io()).subscribe(new Action1<String>() {
             @Override

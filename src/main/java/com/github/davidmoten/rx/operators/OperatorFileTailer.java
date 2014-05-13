@@ -49,7 +49,8 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
         return result;
     }
 
-    private static Func1<Object, Observable<byte[]>> reportNewLines(final File file, final AtomicLong currentPosition) {
+    private static Func1<Object, Observable<byte[]>> reportNewLines(final File file,
+            final AtomicLong currentPosition) {
         return new Func1<Object, Observable<byte[]>>() {
             @Override
             public Observable<byte[]> call(Object event) {
@@ -59,7 +60,8 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
                         FileInputStream fis = new FileInputStream(file);
                         fis.skip(currentPosition.get());
                         // TODO allow option to vary buffer size?
-                        return StringObservable.from(fis).doOnNext(moveCurrentPosition(currentPosition));
+                        return StringObservable.from(fis).doOnNext(
+                                moveCurrentPosition(currentPosition));
                     } catch (IOException e) {
                         return Observable.error(e);
                     }

@@ -41,8 +41,8 @@ public final class FileObservable {
      * @return
      */
     public final static Observable<byte[]> tailFile(File file, long startPosition, long sampleTimeMs) {
-        return from(file, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY,
-                StandardWatchEventKinds.OVERFLOW)
+        return from(file, StandardWatchEventKinds.ENTRY_CREATE,
+                StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.OVERFLOW)
         // don't care about the event details, just that there is one
                 .cast(Object.class)
                 // get lines once on subscription so we tail the lines
@@ -73,9 +73,10 @@ public final class FileObservable {
      *            the character set to use to decode the bytes to a string
      * @return
      */
-    public final static Observable<String> tailTextFile(File file, long startPosition, long sampleTimeMs,
-            Charset charset) {
-        Observable<String> strings = StringObservable.decode(tailFile(file, startPosition, sampleTimeMs), charset);
+    public final static Observable<String> tailTextFile(File file, long startPosition,
+            long sampleTimeMs, Charset charset) {
+        Observable<String> strings = StringObservable.decode(
+                tailFile(file, startPosition, sampleTimeMs), charset);
         return StringObservable.split(strings, "\n");
     }
 
@@ -126,7 +127,8 @@ public final class FileObservable {
      * @return
      */
     @SafeVarargs
-    public final static Observable<WatchService> watchService(final File file, final Kind<?>... kinds) {
+    public final static Observable<WatchService> watchService(final File file,
+            final Kind<?>... kinds) {
         return Observable.create(new OnSubscribe<WatchService>() {
 
             @Override
