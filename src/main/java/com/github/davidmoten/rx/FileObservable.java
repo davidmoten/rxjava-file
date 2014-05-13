@@ -2,24 +2,21 @@ package com.github.davidmoten.rx;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchEvent.Kind;
-import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import rx.Observable;
 import rx.Observable.OnSubscribe;
 import rx.Subscriber;
-import rx.Subscription;
 import rx.functions.Func1;
 
 import com.github.davidmoten.rx.operators.OperatorFileTailer;
+import com.github.davidmoten.rx.operators.OperatorWatchServiceEvents;
 
 /**
  * Observable utility methods related to {@link File}.
@@ -65,7 +62,8 @@ public final class FileObservable {
      * @return
      */
     public final static Observable<WatchEvent<?>> from(WatchService watchService) {
-        return Observable.create(new WatchServiceOnSubscribe(watchService));
+        return Observable.from(watchService).lift(new OperatorWatchServiceEvents());
+        // return Observable.create(new WatchServiceOnSubscribe(watchService));
     }
 
     /**
@@ -159,114 +157,6 @@ public final class FileObservable {
                         ok = false;
                 }
                 return ok;
-            }
-        };
-    }
-
-    static class WatchServiceOnSubscribe implements OnSubscribe<WatchEvent<?>> {
-
-        private final WatchService watchService;
-        private final AtomicBoolean subscribed = new AtomicBoolean(true);
-
-        WatchServiceOnSubscribe(WatchService watchService) {
-            this.watchService = watchService;
-        }
-
-        @Override
-        public void call(Subscriber<? super WatchEvent<?>> subscriber) {
-
-            if (!subscribed.get()) {
-                subscriber.onError(new RuntimeException(
-                        "WatchService closed. You can only subscribe once to a WatchService."));
-                return;
-            }
-            subscriber.add(createSubscriptionToCloseWatchService(watchService, subscribed, subscriber));
-
-            emitEvents(subscriber);
-        }
-
-        private void emitEvents(Subscriber<? super WatchEvent<?>> subscriber) {
-            // get the first event before looping
-            WatchKey key = nextKey(subscriber);
-
-            while (key != null) {
-                if (subscriber.isUnsubscribed())
-                    return;
-                // we have a polled event, now we traverse it and
-                // receive all the states from it
-                for (WatchEvent<?> event : key.pollEvents()) {
-                    if (subscriber.isUnsubscribed())
-                        return;
-                    else
-                        subscriber.onNext(event);
-                }
-
-                boolean valid = key.reset();
-                if (!valid && subscribed.get()) {
-                    subscriber.onCompleted();
-                    return;
-                } else if (!valid)
-                    return;
-
-                key = nextKey(subscriber);
-            }
-        }
-
-        private WatchKey nextKey(Subscriber<? super WatchEvent<?>> subscriber) {
-            try {
-                // this command blocks but unsubscribe close the watch
-                // service and interrupt it
-                return watchService.take();
-            } catch (ClosedWatchServiceException e) {
-                // must have unsubscribed
-                if (subscribed.get())
-                    subscriber.onCompleted();
-                return null;
-            } catch (InterruptedException e) {
-                // this case is problematic because unsubscribe may call
-                // Thread.interrupt() before calling the unsubscribe method of
-                // the Subscription. Thus at this point we don't know if a
-                // deliberate interrupt was called in which case I would call
-                // onComplete or if unsubscribe was called in which case I
-                // should not call anything. For the moment I choose to not call
-                // anything partly because a deliberate stop of the
-                // watchService.take ignorant of the Observable should ideally
-                // happen via a call to the WatchService.close() method rather
-                // than Thread.interrupt().
-                // TODO raise the issue with RxJava team in particular
-                // Subscriptions.from(Future) calling FutureTask.cancel(true)
-                try {
-                    watchService.close();
-                } catch (IOException e1) {
-                    // do nothing
-                }
-                return null;
-            }
-        }
-
-    }
-
-    private final static Subscription createSubscriptionToCloseWatchService(final WatchService watchService,
-            final AtomicBoolean subscribed, final Subscriber<? super WatchEvent<?>> subscriber) {
-        return new Subscription() {
-
-            @Override
-            public void unsubscribe() {
-                try {
-                    watchService.close();
-                    subscribed.set(false);
-                } catch (ClosedWatchServiceException e) {
-                    // do nothing
-                    subscribed.set(false);
-                } catch (IOException e) {
-                    // do nothing
-                    subscribed.set(false);
-                }
-            }
-
-            @Override
-            public boolean isUnsubscribed() {
-                return !subscribed.get();
             }
         };
     }
