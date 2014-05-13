@@ -63,7 +63,6 @@ public final class FileObservable {
      */
     public final static Observable<WatchEvent<?>> from(WatchService watchService) {
         return Observable.from(watchService).lift(new OperatorWatchServiceEvents());
-        // return Observable.create(new WatchServiceOnSubscribe(watchService));
     }
 
     /**
