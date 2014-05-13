@@ -1,7 +1,6 @@
 package com.github.davidmoten.rx;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -132,13 +131,13 @@ public final class FileObservable {
 
             @Override
             public void call(Subscriber<? super WatchService> subscriber) {
-                final Path path = getBasePath(file);
                 try {
+                    final Path path = getBasePath(file);
                     WatchService watchService = path.getFileSystem().newWatchService();
                     path.register(watchService, kinds);
                     subscriber.onNext(watchService);
                     subscriber.onCompleted();
-                } catch (IOException e) {
+                } catch (Exception e) {
                     subscriber.onError(e);
                 }
             }
