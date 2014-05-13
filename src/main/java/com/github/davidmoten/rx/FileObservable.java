@@ -62,10 +62,6 @@ public final class FileObservable {
                 "\n");
     }
 
-    public final static Observable<String> tailTextFile(File file, long startPosition, long sampleTimeMs) {
-        return StringObservable.decode(tailFile(file, startPosition, sampleTimeMs), Charset.defaultCharset());
-    }
-
     /**
      * Returns an {@link Observable} of {@link WatchEvent}s from a
      * {@link WatchService}.
