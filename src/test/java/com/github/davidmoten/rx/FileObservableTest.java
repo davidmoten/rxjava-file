@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchEvent.Kind;
@@ -111,7 +112,7 @@ public class FileObservableTest {
         log.delete();
         log.createNewFile();
         append(log, "a0");
-        Observable<String> tailer = FileObservable.tailTextFile(log, 0, 50);
+        Observable<String> tailer = FileObservable.tailTextFile(log, 0, 50, Charset.forName("UTF-8"));
         final List<String> list = new ArrayList<String>();
         Subscription sub = tailer.subscribeOn(Schedulers.io()).subscribe(new Action1<String>() {
             @Override
@@ -135,7 +136,7 @@ public class FileObservableTest {
         log.delete();
 
         append(log, "a0");
-        Observable<String> tailer = FileObservable.tailTextFile(log, 0, 50);
+        Observable<String> tailer = FileObservable.tailTextFile(log, 0, 50, Charset.forName("UTF-8"));
         final List<String> list = new ArrayList<String>();
         Subscription sub = tailer.subscribeOn(Schedulers.io()).subscribe(new Action1<String>() {
             @Override
@@ -157,7 +158,7 @@ public class FileObservableTest {
     private static void append(File file, String line) {
         try {
             FileOutputStream fos = new FileOutputStream(file, true);
-            fos.write(line.getBytes());
+            fos.write(line.getBytes(Charset.forName("UTF-8")));
             fos.write('\n');
             fos.close();
         } catch (FileNotFoundException e) {
