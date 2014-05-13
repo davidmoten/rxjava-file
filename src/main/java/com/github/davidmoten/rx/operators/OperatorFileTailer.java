@@ -99,7 +99,7 @@ public class OperatorFileTailer implements Operator<String, Object> {
         }
     }
 
-    public static Observable<String> lines(Reader reader) {
+    private static Observable<String> lines(Reader reader) {
         return StringObservable.split(StringObservable.from(reader), "\\n");
     }
 
