@@ -13,6 +13,9 @@ import rx.Subscriber;
 import rx.Subscription;
 import rx.observers.Subscribers;
 
+/**
+ * Emits {@link WatchEvent}s for each input {@link WatchService}.
+ */
 public class OperatorWatchServiceEvents implements Operator<WatchEvent<?>, WatchService> {
 
     @Override
