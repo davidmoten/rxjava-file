@@ -1,19 +1,14 @@
 package com.github.davidmoten.rx.operators;
 
 import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.Reader;
-import java.util.List;
-import java.util.UUID;
+import java.io.FileInputStream;
 import java.util.concurrent.atomic.AtomicLong;
 
 import rx.Observable;
+import rx.Observable.OnSubscribe;
 import rx.Observable.Operator;
 import rx.Subscriber;
-import rx.functions.Action1;
 import rx.functions.Func1;
-import rx.observables.StringObservable;
 import rx.observers.Subscribers;
 import rx.subjects.PublishSubject;
 
@@ -21,7 +16,7 @@ import rx.subjects.PublishSubject;
  * Reacts to source events by emitting new lines written to a file since the
  * last source event.
  */
-public class OperatorFileTailer implements Operator<String, Object> {
+public class OperatorFileTailer implements Operator<byte[], Object> {
 
     private final File file;
     private final AtomicLong currentPosition = new AtomicLong();
@@ -40,7 +35,7 @@ public class OperatorFileTailer implements Operator<String, Object> {
     }
 
     @Override
-    public Subscriber<? super Object> call(Subscriber<? super String> subscriber) {
+    public Subscriber<? super Object> call(Subscriber<? super byte[]> subscriber) {
         final PublishSubject<? super Object> subject = PublishSubject.create();
         Subscriber<? super Object> result = Subscribers.from(subject);
         subscriber.add(result);
@@ -52,18 +47,25 @@ public class OperatorFileTailer implements Operator<String, Object> {
         return result;
     }
 
-    private static Func1<Object, Observable<String>> reportNewLines(final File file, final AtomicLong currentPosition) {
-        return new Func1<Object, Observable<String>>() {
+    private static Func1<Object, Observable<byte[]>> reportNewLines(final File file, final AtomicLong currentPosition) {
+        return new Func1<Object, Observable<byte[]>>() {
             @Override
-            public Observable<String> call(Object event) {
-                long length = file.length();
-                if (length > currentPosition.get()) {
-                    return trimEmpty(lines(createReader(file, currentPosition.get())))
-                    // as each line produced increment the current
-                    // position with its length plus one for the new
-                    // line separator
-                            .doOnNext(moveCurrentPositionByStringLengthPlusOneExceptForFirst(currentPosition));
-                } else {
+            public Observable<byte[]> call(Object event) {
+                return Observable.create(new OnSubscribe<byte[]>() {
+
+                    @Override
+                    public void call(Subscriber<? super byte[]> subscriber) {
+                        long length = file.length();
+                        if (length > currentPosition.get()) {
+                            FileInputStream fis = new FileInputStream(file);
+                            byte[] bytes = new byte[8 * 1024];
+                            int count;
+                            while (count = (fis.read(bytes)) != -1) {
+                                
+                            }
+                    }
+                });
+                                } else {
                     // file has shrunk in size, reset the current position to
                     // detect when it grows next
                     currentPosition.set(length);
@@ -72,82 +74,4 @@ public class OperatorFileTailer implements Operator<String, Object> {
             }
         };
     }
-
-    private static Action1<String> moveCurrentPositionByStringLengthPlusOneExceptForFirst(
-            final AtomicLong currentPosition) {
-        return new Action1<String>() {
-            boolean firstTime = true;
-
-            @Override
-            public void call(String line) {
-                if (firstTime)
-                    currentPosition.addAndGet(line.length());
-                else
-                    currentPosition.addAndGet(line.length() + 1);
-                firstTime = false;
-            }
-        };
-    }
-
-    private static FileReader createReader(File file, long position) {
-        try {
-            FileReader reader = new FileReader(file);
-            reader.skip(position);
-            return reader;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static Observable<String> lines(Reader reader) {
-        return StringObservable.split(StringObservable.from(reader), "\\n");
-    }
-
-    static Observable<String> trimEmpty(Observable<String> source) {
-        final String terminator = UUID.randomUUID().toString() + UUID.randomUUID().toString();
-        return Observable
-        // end with
-                .just(terminator)
-                // start with
-                .startWith(source)
-                // ignore empty string at start
-                .filter(ignoreEmptyStringAtStart())
-                // buffer with a window of 2 step 1
-                .buffer(2, 1)
-                // do not emit element before terminator if empty string
-                .concatMap(new Func1<List<String>, Observable<String>>() {
-                    @Override
-                    public Observable<String> call(List<String> list) {
-                        if (list.size() > 1)
-                            if (terminator.equals(list.get(1)))
-                                if (list.get(0).length() == 0)
-                                    return Observable.empty();
-                                else
-                                    return Observable.just(list.get(0));
-                            else
-                                return Observable.just(list.get(0));
-                        else
-                            // must be just the terminator
-                            return Observable.empty();
-                    }
-                });
-    }
-
-    private static Func1<String, Boolean> ignoreEmptyStringAtStart() {
-        return new Func1<String, Boolean>() {
-            boolean firstTime = true;
-
-            @Override
-            public Boolean call(String s) {
-                boolean result;
-                if (firstTime)
-                    result = s == null || s.length() > 0;
-                else
-                    result = true;
-                firstTime = false;
-                return result;
-            }
-        };
-    }
-
 }
