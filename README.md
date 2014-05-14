@@ -1,7 +1,7 @@
 rxjava-file
 ===========
 
-Status: released to Maven Central
+Status: *released to Maven Central*
 
 Requires Java 7.
 
