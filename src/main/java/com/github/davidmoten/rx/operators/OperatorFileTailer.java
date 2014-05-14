@@ -6,9 +6,11 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 
 import rx.Observable;
+import rx.Observable.OnSubscribe;
 import rx.Observable.Operator;
 import rx.Observer;
 import rx.Subscriber;
+import rx.Subscription;
 import rx.functions.Func1;
 import rx.observables.StringObservable;
 import rx.observers.Subscribers;
@@ -53,59 +55,60 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
         return new Func1<Object, Observable<byte[]>>() {
             @Override
             public Observable<byte[]> call(Object event) {
-                // TODO use Observable.create so can register close of input
-                // stream on unsubscribe
-                long length = file.length();
-                if (length > currentPosition.get()) {
-                    try {
-                        final FileInputStream fis = new FileInputStream(file);
-                        fis.skip(currentPosition.get());
-                        // TODO allow option to vary buffer size?
-                        return StringObservable.from(fis)
-                        // handle moving file position and closing input stream
-                        // TOOD close input stream on unsubscribe?
-                                .doOnEach(moveMarkerAndCloseResources(currentPosition, fis));
-                    } catch (IOException e) {
-                        return Observable.error(e);
-                    }
-                } else {
-                    // file has shrunk in size, reset the current
-                    // position to
-                    // detect when it grows next
-                    currentPosition.set(length);
-                    return Observable.empty();
-                }
-            }
-
-            private Observer<byte[]> moveMarkerAndCloseResources(final AtomicLong currentPosition,
-                    final FileInputStream fis) {
-                return new Observer<byte[]>() {
+                return Observable.create(new OnSubscribe<byte[]>() {
 
                     @Override
-                    public void onCompleted() {
-                        close(fis);
-                    }
+                    public void call(final Subscriber<? super byte[]> subscriber) {
+                        long length = file.length();
+                        if (length > currentPosition.get()) {
+                            try {
+                                final FileInputStream fis = new FileInputStream(file);
+                                fis.skip(currentPosition.get());
+                                // TODO allow option to vary buffer size?
+                                // TODO close input stream on unsubscribe
+                                Subscription sub = StringObservable.from(fis)
+                                // sbuscribe
+                                        .subscribe(new Observer<byte[]>() {
 
-                    @Override
-                    public void onError(Throwable e) {
-                        close(fis);
-                    }
+                                            @Override
+                                            public void onCompleted() {
+                                                close(fis);
+                                                subscriber.onCompleted();
+                                            }
 
-                    private void close(FileInputStream fis) {
-                        try {
-                            fis.close();
-                        } catch (IOException e) {
-                            // do nothing
+                                            @Override
+                                            public void onError(Throwable e) {
+                                                close(fis);
+                                                subscriber.onError(e);
+                                            }
+
+                                            @Override
+                                            public void onNext(byte[] bytes) {
+                                                currentPosition.addAndGet(bytes.length);
+                                                subscriber.onNext(bytes);
+                                            }
+                                        });
+                                subscriber.add(sub);
+                            } catch (IOException e) {
+                                subscriber.onError(e);
+                            }
+                        } else {
+                            // file has shrunk in size so has probably been
+                            // rolled over, reset the current
+                            // position to zero
+                            currentPosition.set(0);
                         }
                     }
-
-                    @Override
-                    public void onNext(byte[] bytes) {
-                        currentPosition.addAndGet(bytes.length);
-                    }
-                };
+                });
             }
         };
     }
 
+    private static void close(FileInputStream fis) {
+        try {
+            fis.close();
+        } catch (IOException e) {
+            // do nothing
+        }
+    }
 }
