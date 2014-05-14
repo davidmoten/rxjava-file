@@ -13,5 +13,25 @@ Continuous integration with Jenkins for this project is [here](https://xuml-tool
 
 Maven site reports are [here](http://davidmoten.github.io/rxjava-file/index.html) including [javadoc](http://davidmoten.github.io/rxjava-file/apidocs/index.html).
 
+Getting started
+====================
+Add this maven dependency to your pom.xml:
+```xml
+<dependency>
+  <groupId>com.github.davidmoten</groupId>
+  <artifactId>rxjava-file</artifactId>
+  <version>0.1-SNAPSHOT</version>
+</dependency>
+```
+
+How to build
+===============
+
+```bash
+git clone https://github.com/davidmoten/rxjava-file
+cd rxjava-file
+maven clean install 
+```
+
 
 
