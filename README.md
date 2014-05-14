@@ -42,7 +42,9 @@ Tail the file /var/log/server.log as an Observable of strings:
 import com.github.davidmoten.rx.FileObservable;
 import java.nio.charset.Charset;
 import rx.Observable;
+import java.io.File; 
  
+File file = new File("var/log/server.log");
 long startPosition = 0;
 long sampleTimeMs = 500;
 Observable<String> lines = 
