@@ -9,7 +9,6 @@ import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observer;
 import rx.Subscriber;
-import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.observables.StringObservable;
 import rx.observers.Subscribers;
@@ -54,6 +53,8 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
         return new Func1<Object, Observable<byte[]>>() {
             @Override
             public Observable<byte[]> call(Object event) {
+                // TODO use Observable.create so can register close of input
+                // stream on unsubscribe
                 long length = file.length();
                 if (length > currentPosition.get()) {
                     try {
@@ -62,6 +63,7 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
                         // TODO allow option to vary buffer size?
                         return StringObservable.from(fis)
                         // handle moving file position and closing input stream
+                        // TOOD close input stream on unsubscribe?
                                 .doOnEach(moveMarkerAndCloseResources(currentPosition, fis));
                     } catch (IOException e) {
                         return Observable.error(e);
@@ -106,12 +108,4 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
         };
     }
 
-    private static Action1<byte[]> moveCurrentPosition(final AtomicLong currentPosition) {
-        return new Action1<byte[]>() {
-            @Override
-            public void call(byte[] bytes) {
-
-            }
-        };
-    }
 }
