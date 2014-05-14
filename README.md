@@ -36,7 +36,7 @@ maven clean install
 Examples
 --------------
 
-Tail the file /var/log/server.log as an Observable of strings:
+Tail the lines of the file ```/var/log/server.log``` as an ```Observable<String>```:
 
 ```java
 import com.github.davidmoten.rx.FileObservable;
@@ -48,7 +48,9 @@ File file = new File("var/log/server.log");
 long startPosition = 0;
 long sampleTimeMs = 500;
 Observable<String> lines = 
-     FileObservable.tailTextFile(log, startPosition, sampleTimeMs, Charset.forName("UTF-8"));
+     FileObservable.tailTextFile(
+                     file, startPosition,
+                     sampleTimeMs, Charset.forName("UTF-8"));
 ```
 
 
