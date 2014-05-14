@@ -52,6 +52,16 @@ Observable<String> lines =
                      file, startPosition,
                      sampleTimeMs, Charset.forName("UTF-8"));
 ```
+The above example uses a WatchService to generate WatchEvents to prompt rereads of the end of the file to perform the tail.
 
+To use polling instead (say every 5 seconds):
+
+```java
+Observable<String> lines = 
+     FileObservable.tailTextFile(
+     			file, startPosition,
+     			Charset.forName("UTF-8"),
+     			Observable.interval(5, TimeUnit.SECONDS));
+```
 
 

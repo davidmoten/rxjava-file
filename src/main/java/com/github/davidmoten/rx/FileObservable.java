@@ -75,9 +75,12 @@ public final class FileObservable {
      */
     public final static Observable<String> tailTextFile(File file, long startPosition,
             long sampleTimeMs, Charset charset) {
-        Observable<String> strings = StringObservable.decode(
-                tailFile(file, startPosition, sampleTimeMs), charset);
-        return StringObservable.split(strings, "\n");
+        return toLines(tailFile(file, startPosition, sampleTimeMs), charset);
+    }
+
+    public final static Observable<String> tailTextFile(File file, long startPosition,
+            Charset charset, Observable<?> events) {
+        return toLines(events.lift(new OperatorFileTailer(file, startPosition)), charset);
     }
 
     /**
@@ -190,6 +193,10 @@ public final class FileObservable {
                 return ok;
             }
         };
+    }
+
+    private static Observable<String> toLines(Observable<byte[]> bytes, Charset charset) {
+        return StringObservable.split(StringObservable.decode(bytes, charset), "\n");
     }
 
     private final static Func1<WatchService, Observable<WatchEvent<?>>> TO_WATCH_EVENTS = new Func1<WatchService, Observable<WatchEvent<?>>>() {
