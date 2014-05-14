@@ -77,8 +77,6 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
                     try {
                         final FileInputStream fis = new FileInputStream(file);
                         fis.skip(currentPosition.get());
-                        // TODO allow option to vary buffer size?
-
                         // apply using method to ensure fis is closed on
                         // termination or unsubscription
                         Func0<Subscription> subscriptionFactory = createSubscriptionFactory(fis);
