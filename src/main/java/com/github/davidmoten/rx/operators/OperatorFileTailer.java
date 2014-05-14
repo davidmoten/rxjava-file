@@ -27,6 +27,7 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
 
     private final File file;
     private final AtomicLong currentPosition = new AtomicLong();
+    private final int maxBytesPerEmission;
 
     /**
      * Constructor.
@@ -36,9 +37,20 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
      * @param startPosition
      *            start tailing the file after this many bytes
      */
-    public OperatorFileTailer(File file, long startPosition) {
+    public OperatorFileTailer(File file, long startPosition, int maxBytesPerEmission) {
         this.file = file;
         this.currentPosition.set(startPosition);
+        this.maxBytesPerEmission = maxBytesPerEmission;
+    }
+
+    /**
+     * Constructor. Emits byte arrays of up to 8*1024 bytes.
+     * 
+     * @param file
+     * @param startPosition
+     */
+    public OperatorFileTailer(File file, long startPosition) {
+        this(file, startPosition, 8 * 1024);
     }
 
     @Override
@@ -48,13 +60,14 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
         subscriber.add(result);
         subject
         // report new lines for each event
-        .concatMap(reportNewLines(file, currentPosition))
+        .concatMap(reportNewLines(file, currentPosition, maxBytesPerEmission))
         // subscribe
                 .unsafeSubscribe(subscriber);
         return result;
     }
 
-    private static Func1<Object, Observable<byte[]>> reportNewLines(final File file, final AtomicLong currentPosition) {
+    private static Func1<Object, Observable<byte[]>> reportNewLines(final File file, final AtomicLong currentPosition,
+            final int maxBytesPerEmission) {
         return new Func1<Object, Observable<byte[]>>() {
             @Override
             public Observable<byte[]> call(Object event) {
@@ -70,7 +83,7 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
                         // termination or unsubscription
                         Func0<Subscription> subscriptionFactory = createSubscriptionFactory(fis);
                         Func1<Subscription, Observable<byte[]>> observableFactory = createObservableFactory(fis,
-                                currentPosition);
+                                currentPosition, maxBytesPerEmission);
                         return Observable.using(subscriptionFactory, observableFactory);
                     } catch (IOException e) {
                         return Observable.error(e);
@@ -107,13 +120,13 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
     }
 
     private static Func1<Subscription, Observable<byte[]>> createObservableFactory(final FileInputStream fis,
-            final AtomicLong currentPosition) {
+            final AtomicLong currentPosition, final int maxBytesPerEmission) {
         return new Func1<Subscription, Observable<byte[]>>() {
 
             @Override
             public Observable<byte[]> call(Subscription subscription) {
-                return StringObservable.from(fis)
-                // sbuscribe
+                return StringObservable.from(fis, maxBytesPerEmission)
+                // move marker
                         .doOnNext(new Action1<byte[]>() {
                             @Override
                             public void call(byte[] bytes) {
@@ -124,11 +137,4 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
         };
     }
 
-    private static void close(FileInputStream fis) {
-        try {
-            fis.close();
-        } catch (IOException e) {
-            // do nothing
-        }
-    }
 }
