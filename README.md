@@ -6,7 +6,7 @@ Status: *pre-alpha*
 Requires Java 7.
 
 Observable utilities for files:
-* tail a text file using Java 7 and later NIO ```WatchService``` events
+* tail a text file optionally using Java 7 and later NIO ```WatchService``` events
 * stream ```WatchEvent```s from a ```WatchService```
 
 Continuous integration with Jenkins for this project is [here](https://xuml-tools.ci.cloudbees.com/). <a href="https://xuml-tools.ci.cloudbees.com/"><img  src="http://web-static-cloudfront.s3.amazonaws.com/images/badges/BuiltOnDEV.png"/></a>
@@ -31,6 +31,22 @@ How to build
 git clone https://github.com/davidmoten/rxjava-file
 cd rxjava-file
 maven clean install 
+```
+
+Examples
+--------------
+
+Tail the file /var/log/server.log as an Observable of strings:
+
+```java
+import com.github.davidmoten.rx.FileObservable;
+import java.nio.charset.Charset;
+import rx.Observable;
+ 
+long startPosition = 0;
+long sampleTimeMs = 500;
+Observable<String> lines = 
+     FileObservable.tailTextFile(log, startPosition, sampleTimeMs, Charset.forName("UTF-8"));
 ```
 
 
