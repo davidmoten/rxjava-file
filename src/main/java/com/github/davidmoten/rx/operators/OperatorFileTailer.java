@@ -3,18 +3,21 @@ package com.github.davidmoten.rx.operators;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicLong;
 
 import rx.Observable;
-import rx.Observable.OnSubscribe;
 import rx.Observable.Operator;
-import rx.Observer;
 import rx.Subscriber;
 import rx.Subscription;
+import rx.functions.Action0;
+import rx.functions.Action1;
+import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.observables.StringObservable;
 import rx.observers.Subscribers;
 import rx.subjects.PublishSubject;
+import rx.subscriptions.Subscriptions;
 
 /**
  * Reacts to source events by emitting new lines written to a file since the
@@ -55,51 +58,68 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
         return new Func1<Object, Observable<byte[]>>() {
             @Override
             public Observable<byte[]> call(Object event) {
-                return Observable.create(new OnSubscribe<byte[]>() {
 
+                long length = file.length();
+                if (length > currentPosition.get()) {
+                    try {
+                        final FileInputStream fis = new FileInputStream(file);
+                        fis.skip(currentPosition.get());
+                        // TODO allow option to vary buffer size?
+
+                        // apply using method to ensure fis is closed on
+                        // termination or unsubscription
+                        Func0<Subscription> subscriptionFactory = createSubscriptionFactory(fis);
+                        Func1<Subscription, Observable<byte[]>> observableFactory = createObservableFactory(fis,
+                                currentPosition);
+                        return Observable.using(subscriptionFactory, observableFactory);
+                    } catch (IOException e) {
+                        return Observable.error(e);
+                    }
+                } else {
+                    // file has shrunk in size so has probably been
+                    // rolled over, reset the current
+                    // position to zero
+                    currentPosition.set(0);
+                    return Observable.empty();
+                }
+            }
+
+        };
+    }
+
+    private static Func0<Subscription> createSubscriptionFactory(final InputStream is) {
+        return new Func0<Subscription>() {
+
+            @Override
+            public Subscription call() {
+                return Subscriptions.create(new Action0() {
                     @Override
-                    public void call(final Subscriber<? super byte[]> subscriber) {
-                        long length = file.length();
-                        if (length > currentPosition.get()) {
-                            try {
-                                final FileInputStream fis = new FileInputStream(file);
-                                fis.skip(currentPosition.get());
-                                // TODO allow option to vary buffer size?
-                                // TODO close input stream on unsubscribe
-                                Subscription sub = StringObservable.from(fis)
-                                // sbuscribe
-                                        .subscribe(new Observer<byte[]>() {
-
-                                            @Override
-                                            public void onCompleted() {
-                                                close(fis);
-                                                subscriber.onCompleted();
-                                            }
-
-                                            @Override
-                                            public void onError(Throwable e) {
-                                                close(fis);
-                                                subscriber.onError(e);
-                                            }
-
-                                            @Override
-                                            public void onNext(byte[] bytes) {
-                                                currentPosition.addAndGet(bytes.length);
-                                                subscriber.onNext(bytes);
-                                            }
-                                        });
-                                subscriber.add(sub);
-                            } catch (IOException e) {
-                                subscriber.onError(e);
-                            }
-                        } else {
-                            // file has shrunk in size so has probably been
-                            // rolled over, reset the current
-                            // position to zero
-                            currentPosition.set(0);
+                    public void call() {
+                        try {
+                            is.close();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
                         }
                     }
                 });
+            }
+        };
+    }
+
+    private static Func1<Subscription, Observable<byte[]>> createObservableFactory(final FileInputStream fis,
+            final AtomicLong currentPosition) {
+        return new Func1<Subscription, Observable<byte[]>>() {
+
+            @Override
+            public Observable<byte[]> call(Subscription subscription) {
+                return StringObservable.from(fis)
+                // sbuscribe
+                        .doOnNext(new Action1<byte[]>() {
+                            @Override
+                            public void call(byte[] bytes) {
+                                currentPosition.addAndGet(bytes.length);
+                            }
+                        });
             }
         };
     }
