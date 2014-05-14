@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import rx.Observable;
 import rx.Observable.Operator;
+import rx.Observer;
 import rx.Subscriber;
 import rx.functions.Action1;
 import rx.functions.Func1;
@@ -49,19 +50,19 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
         return result;
     }
 
-    private static Func1<Object, Observable<byte[]>> reportNewLines(final File file,
-            final AtomicLong currentPosition) {
+    private static Func1<Object, Observable<byte[]>> reportNewLines(final File file, final AtomicLong currentPosition) {
         return new Func1<Object, Observable<byte[]>>() {
             @Override
             public Observable<byte[]> call(Object event) {
                 long length = file.length();
                 if (length > currentPosition.get()) {
                     try {
-                        FileInputStream fis = new FileInputStream(file);
+                        final FileInputStream fis = new FileInputStream(file);
                         fis.skip(currentPosition.get());
                         // TODO allow option to vary buffer size?
-                        return StringObservable.from(fis).doOnNext(
-                                moveCurrentPosition(currentPosition));
+                        return StringObservable.from(fis)
+                        // handle moving file position and closing input stream
+                                .doOnEach(moveMarkerAndCloseResources(currentPosition, fis));
                     } catch (IOException e) {
                         return Observable.error(e);
                     }
@@ -74,6 +75,34 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
                 }
             }
 
+            private Observer<byte[]> moveMarkerAndCloseResources(final AtomicLong currentPosition,
+                    final FileInputStream fis) {
+                return new Observer<byte[]>() {
+
+                    @Override
+                    public void onCompleted() {
+                        close(fis);
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        close(fis);
+                    }
+
+                    private void close(FileInputStream fis) {
+                        try {
+                            fis.close();
+                        } catch (IOException e) {
+                            // do nothing
+                        }
+                    }
+
+                    @Override
+                    public void onNext(byte[] bytes) {
+                        currentPosition.addAndGet(bytes.length);
+                    }
+                };
+            }
         };
     }
 
@@ -81,7 +110,7 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
         return new Action1<byte[]>() {
             @Override
             public void call(byte[] bytes) {
-                currentPosition.addAndGet(bytes.length);
+
             }
         };
     }
