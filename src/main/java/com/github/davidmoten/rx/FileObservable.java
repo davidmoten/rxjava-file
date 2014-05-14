@@ -78,6 +78,17 @@ public final class FileObservable {
         return toLines(tailFile(file, startPosition, sampleTimeMs), charset);
     }
 
+    /**
+     * Returns an {@link Observable} of String that uses the given events stream
+     * to trigger checks on file change so that new lines can be read and
+     * emitted.
+     * 
+     * @param file
+     * @param startPosition
+     * @param charset
+     * @param events
+     * @return
+     */
     public final static Observable<String> tailTextFile(File file, long startPosition,
             Charset charset, Observable<?> events) {
         return toLines(events.lift(new OperatorFileTailer(file, startPosition)), charset);
