@@ -24,12 +24,12 @@ import com.github.davidmoten.rx.operators.OperatorWatchServiceEvents;
  */
 public final class FileObservable {
 
-    private static final int DEFAULT_MAX_BYTES_PER_EMISSION = 8192;
+    public static final int DEFAULT_MAX_BYTES_PER_EMISSION = 8192;
 
     /**
      * Returns an {@link Observable} that uses NIO WatchService (and a dedicated
-     * thread) to push modify events to an observable that reads and reports new
-     * sequences of bytes to a subscriber. The NIO WatchService events are
+     * thread) to push modified events to an observable that reads and reports
+     * new sequences of bytes to a subscriber. The NIO WatchService events are
      * sampled according to <code>sampleTimeMs</code> so that lots of discrete
      * activity on a file (for example a log file with very frequent entries)
      * does not prompt an inordinate number of file reads to pick up changes.
@@ -42,13 +42,15 @@ public final class FileObservable {
      *            sample time in millis
      * @param maxBytesPerEmission
      *            max array size of each element emitted by the Observable. Is
-     *            also used as the buffer size for reading from the file.
+     *            also used as the buffer size for reading from the file. Try
+     *            {@link FileObservable#DEFAULT_MAX_BYTES_PER_EMISSION} if you
+     *            don't know what to put here.
      * @return
      */
-    public final static Observable<byte[]> tailFile(File file, long startPosition, long sampleTimeMs,
-            int maxBytesPerEmission) {
-        return from(file, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY,
-                StandardWatchEventKinds.OVERFLOW)
+    public final static Observable<byte[]> tailFile(File file, long startPosition,
+            long sampleTimeMs, int maxBytesPerEmission) {
+        return from(file, StandardWatchEventKinds.ENTRY_CREATE,
+                StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.OVERFLOW)
         // don't care about the event details, just that there is one
                 .cast(Object.class)
                 // get lines once on subscription so we tail the lines
@@ -62,13 +64,12 @@ public final class FileObservable {
     }
 
     /**
-     * Returns an {@link Observable} that uses NIO WatchService (and a dedicated
-     * thread) to push modify events to an observable that reads and reports new
-     * sequences of bytes to a subscriber. The NIO WatchService events are
-     * sampled according to <code>sampleTimeMs</code> so that lots of discrete
-     * activity on a file (for example a log file with very frequent entries)
-     * does not prompt an inordinate number of file reads to pick up changes.
-     * Max size of byte array emitted by the Observable is 8192 bytes. s
+     * Returns an {@link Observable} that uses given given Observable to push
+     * modified events to an observable that reads and reports new sequences of
+     * bytes to a subscriber. The NIO WatchService events are sampled according
+     * to <code>sampleTimeMs</code> so that lots of discrete activity on a file
+     * (for example a log file with very frequent entries) does not prompt an
+     * inordinate number of file reads to pick up changes.
      * 
      * @param file
      *            the file to tail
@@ -76,19 +77,29 @@ public final class FileObservable {
      *            start tailing file at position in bytes
      * @param sampleTimeMs
      *            sample time in millis
+     * @param maxBytesPerEmission
+     *            max array size of each element emitted by the Observable. Is
+     *            also used as the buffer size for reading from the file. Try
+     *            {@link FileObservable#DEFAULT_MAX_BYTES_PER_EMISSION} if you
+     *            don't know what to put here.
      * @return
      */
-    public final static Observable<byte[]> tailFile(File file, long startPosition, long sampleTimeMs) {
-        return tailFile(file, startPosition, sampleTimeMs, DEFAULT_MAX_BYTES_PER_EMISSION);
+    public final static Observable<byte[]> tailFile(File file, long startPosition,
+            long sampleTimeMs, int maxBytesPerEmission, Observable<?> events) {
+        return events
+        // emit a max of 1 event per sample period
+                .sample(sampleTimeMs, TimeUnit.MILLISECONDS)
+                // tail file triggered by events
+                .lift(new OperatorFileTailer(file, startPosition, maxBytesPerEmission));
     }
 
     /**
      * Returns an {@link Observable} that uses NIO WatchService (and a dedicated
-     * thread) to push modify events to an observable that reads and reports new
-     * lines to a subscriber. The NIO WatchService events are sampled according
-     * to <code>sampleTimeMs</code> so that lots of discrete activity on a file
-     * (for example a log file with very frequent entries) does not prompt an
-     * inordinate number of file reads to pick up changes.
+     * thread) to push modified events to an observable that reads and reports
+     * new lines to a subscriber. The NIO WatchService events are sampled
+     * according to <code>sampleTimeMs</code> so that lots of discrete activity
+     * on a file (for example a log file with very frequent entries) does not
+     * prompt an inordinate number of file reads to pick up changes.
      * 
      * @param file
      *            the file to tail
@@ -100,9 +111,10 @@ public final class FileObservable {
      *            the character set to use to decode the bytes to a string
      * @return
      */
-    public final static Observable<String> tailTextFile(File file, long startPosition, long sampleTimeMs,
-            Charset charset) {
-        return toLines(tailFile(file, startPosition, sampleTimeMs), charset);
+    public final static Observable<String> tailTextFile(File file, long startPosition,
+            long sampleTimeMs, Charset charset) {
+        return toLines(tailFile(file, startPosition, sampleTimeMs, DEFAULT_MAX_BYTES_PER_EMISSION),
+                charset);
     }
 
     /**
@@ -121,8 +133,8 @@ public final class FileObservable {
      *            {@link Observable#interval(long, TimeUnit)} for example.
      * @return
      */
-    public final static Observable<String> tailTextFile(File file, long startPosition, Charset charset,
-            Observable<?> events) {
+    public final static Observable<String> tailTextFile(File file, long startPosition,
+            Charset charset, Observable<?> events) {
         return toLines(events.lift(new OperatorFileTailer(file, startPosition)), charset);
     }
 
@@ -173,7 +185,8 @@ public final class FileObservable {
      * @return
      */
     @SafeVarargs
-    public final static Observable<WatchService> watchService(final File file, final Kind<?>... kinds) {
+    public final static Observable<WatchService> watchService(final File file,
+            final Kind<?>... kinds) {
         return Observable.create(new OnSubscribe<WatchService>() {
 
             @Override
