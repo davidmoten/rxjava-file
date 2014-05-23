@@ -27,12 +27,13 @@ public final class FileObservable {
     public static final int DEFAULT_MAX_BYTES_PER_EMISSION = 8192;
 
     /**
-     * Returns an {@link Observable} that uses NIO WatchService (and a dedicated
-     * thread) to push modified events to an observable that reads and reports
-     * new sequences of bytes to a subscriber. The NIO WatchService events are
-     * sampled according to <code>sampleTimeMs</code> so that lots of discrete
-     * activity on a file (for example a log file with very frequent entries)
-     * does not prompt an inordinate number of file reads to pick up changes.
+     * Returns an {@link Observable} that uses NIO {@link WatchService} (and a
+     * dedicated thread) to push modified events to an observable that reads and
+     * reports new sequences of bytes to a subscriber. The NIO
+     * {@link WatchService} events are sampled according to
+     * <code>sampleTimeMs</code> so that lots of discrete activity on a file
+     * (for example a log file with very frequent entries) does not prompt an
+     * inordinate number of file reads to pick up changes.
      * 
      * @param file
      *            the file to tail
@@ -64,12 +65,12 @@ public final class FileObservable {
     }
 
     /**
-     * Returns an {@link Observable} that uses given given Observable to push
+     * Returns an {@link Observable} that uses given given observable to push
      * modified events to an observable that reads and reports new sequences of
-     * bytes to a subscriber. The NIO WatchService events are sampled according
-     * to <code>sampleTimeMs</code> so that lots of discrete activity on a file
-     * (for example a log file with very frequent entries) does not prompt an
-     * inordinate number of file reads to pick up changes.
+     * bytes to a subscriber. The NIO {@link WatchService} events are sampled
+     * according to <code>sampleTimeMs</code> so that lots of discrete activity
+     * on a file (for example a log file with very frequent entries) does not
+     * prompt an inordinate number of file reads to pick up changes.
      * 
      * @param file
      *            the file to tail
@@ -94,12 +95,12 @@ public final class FileObservable {
     }
 
     /**
-     * Returns an {@link Observable} that uses NIO WatchService (and a dedicated
-     * thread) to push modified events to an observable that reads and reports
-     * new lines to a subscriber. The NIO WatchService events are sampled
-     * according to <code>sampleTimeMs</code> so that lots of discrete activity
-     * on a file (for example a log file with very frequent entries) does not
-     * prompt an inordinate number of file reads to pick up changes.
+     * Returns an {@link Observable} that uses NIO {@link WatchService} (and a
+     * dedicated thread) to push modified events to an observable that reads and
+     * reports new lines to a subscriber. The NIO WatchService events are
+     * sampled according to <code>sampleTimeMs</code> so that lots of discrete
+     * activity on a file (for example a log file with very frequent entries)
+     * does not prompt an inordinate number of file reads to pick up changes.
      * 
      * @param file
      *            the file to tail
