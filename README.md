@@ -8,6 +8,7 @@ Requires Java 7.
 Observable utilities for files:
 * tail a file (either lines or byte[]) 
 * trigger tail updates using Java 7 and later NIO ```WatchService``` events
+* or trigger tail updates using any Observable
 * stream ```WatchEvent```s from a ```WatchService```
 
 Continuous integration with Jenkins for this project is [here](https://xuml-tools.ci.cloudbees.com/). <a href="https://xuml-tools.ci.cloudbees.com/"><img  src="http://web-static-cloudfront.s3.amazonaws.com/images/badges/BuiltOnDEV.png"/></a>
