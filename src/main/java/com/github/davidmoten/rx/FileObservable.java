@@ -41,7 +41,7 @@ public final class FileObservable {
      *            start tailing file at position in bytes
      * @param sampleTimeMs
      *            sample time in millis
-     * @param maxBytesPerEmission
+     * @param chunkSize
      *            max array size of each element emitted by the Observable. Is
      *            also used as the buffer size for reading from the file. Try
      *            {@link FileObservable#DEFAULT_MAX_BYTES_PER_EMISSION} if you
@@ -49,7 +49,7 @@ public final class FileObservable {
      * @return
      */
     public final static Observable<byte[]> tailFile(File file, long startPosition,
-            long sampleTimeMs, int maxBytesPerEmission) {
+            long sampleTimeMs, int chunkSize) {
         return from(file, StandardWatchEventKinds.ENTRY_CREATE,
                 StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.OVERFLOW)
         // don't care about the event details, just that there is one
@@ -61,7 +61,7 @@ public final class FileObservable {
                 // emit a max of 1 event per sample period
                 .sample(sampleTimeMs, TimeUnit.MILLISECONDS)
                 // tail file triggered by events
-                .lift(new OperatorFileTailer(file, startPosition, maxBytesPerEmission));
+                .lift(new OperatorFileTailer(file, startPosition, chunkSize));
     }
 
     /**
@@ -78,7 +78,7 @@ public final class FileObservable {
      *            start tailing file at position in bytes
      * @param sampleTimeMs
      *            sample time in millis
-     * @param maxBytesPerEmission
+     * @param chunkSize
      *            max array size of each element emitted by the Observable. Is
      *            also used as the buffer size for reading from the file. Try
      *            {@link FileObservable#DEFAULT_MAX_BYTES_PER_EMISSION} if you
@@ -86,12 +86,12 @@ public final class FileObservable {
      * @return
      */
     public final static Observable<byte[]> tailFile(File file, long startPosition,
-            long sampleTimeMs, int maxBytesPerEmission, Observable<?> events) {
+            long sampleTimeMs, int chunkSize, Observable<?> events) {
         return events
         // emit a max of 1 event per sample period
                 .sample(sampleTimeMs, TimeUnit.MILLISECONDS)
                 // tail file triggered by events
-                .lift(new OperatorFileTailer(file, startPosition, maxBytesPerEmission));
+                .lift(new OperatorFileTailer(file, startPosition, chunkSize));
     }
 
     /**
