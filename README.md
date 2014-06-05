@@ -11,6 +11,8 @@ Observable utilities for files:
 * or trigger tail updates using any Observable
 * stream ```WatchEvent```s from a ```WatchService```
 
+[Release notes](http://davidmoten.github.io/rxjava-file/RELEASE_NOTES.md)
+
 Continuous integration with Jenkins for this project is [here](https://xuml-tools.ci.cloudbees.com/). <a href="https://xuml-tools.ci.cloudbees.com/"><img  src="http://web-static-cloudfront.s3.amazonaws.com/images/badges/BuiltOnDEV.png"/></a>
 
 Maven site reports are [here](http://davidmoten.github.io/rxjava-file/index.html) including [javadoc](http://davidmoten.github.io/rxjava-file/apidocs/index.html).
