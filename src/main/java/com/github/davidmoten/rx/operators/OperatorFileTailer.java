@@ -50,20 +50,20 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
      * @param startPosition
      */
     public OperatorFileTailer(File file, long startPosition) {
-        this(file, startPosition, 8 * 1024);
+        this(file, startPosition, 8192);
     }
 
     @Override
-    public Subscriber<? super Object> call(Subscriber<? super byte[]> subscriber) {
+    public Subscriber<? super Object> call(Subscriber<? super byte[]> child) {
         final PublishSubject<? super Object> subject = PublishSubject.create();
-        Subscriber<? super Object> result = Subscribers.from(subject);
-        subscriber.add(result);
+        Subscriber<? super Object> parent = Subscribers.from(subject);
+        child.add(parent);
         subject
         // report new lines for each event
         .concatMap(reportNewLines(file, currentPosition, maxBytesPerEmission))
         // subscribe
-                .unsafeSubscribe(subscriber);
-        return result;
+                .unsafeSubscribe(child);
+        return parent;
     }
 
     private static Func1<Object, Observable<byte[]>> reportNewLines(final File file, final AtomicLong currentPosition,
