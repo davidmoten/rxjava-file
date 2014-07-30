@@ -66,8 +66,8 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
         return parent;
     }
 
-    private static Func1<Object, Observable<byte[]>> reportNewLines(final File file, final AtomicLong currentPosition,
-            final int maxBytesPerEmission) {
+    private static Func1<Object, Observable<byte[]>> reportNewLines(final File file,
+            final AtomicLong currentPosition, final int maxBytesPerEmission) {
         return new Func1<Object, Observable<byte[]>>() {
             @Override
             public Observable<byte[]> call(Object event) {
@@ -80,19 +80,19 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
                         // apply using method to ensure fis is closed on
                         // termination or unsubscription
                         Func0<Subscription> subscriptionFactory = createSubscriptionFactory(fis);
-                        Func1<Subscription, Observable<byte[]>> observableFactory = createObservableFactory(fis,
-                                currentPosition, maxBytesPerEmission);
+                        Func1<Subscription, Observable<byte[]>> observableFactory = createObservableFactory(
+                                fis, currentPosition, maxBytesPerEmission);
                         return Observable.using(subscriptionFactory, observableFactory);
                     } catch (IOException e) {
                         return Observable.error(e);
                     }
-                } else {
+                } else if (length < currentPosition.get()) {
                     // file has shrunk in size so has probably been
-                    // rolled over, reset the current
-                    // position to zero
+                    // rolled over, reset the current position to zero
                     currentPosition.set(0);
                     return Observable.empty();
-                }
+                } else
+                    return Observable.empty();
             }
 
         };
@@ -117,8 +117,9 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
         };
     }
 
-    private static Func1<Subscription, Observable<byte[]>> createObservableFactory(final FileInputStream fis,
-            final AtomicLong currentPosition, final int maxBytesPerEmission) {
+    private static Func1<Subscription, Observable<byte[]>> createObservableFactory(
+            final FileInputStream fis, final AtomicLong currentPosition,
+            final int maxBytesPerEmission) {
         return new Func1<Subscription, Observable<byte[]>>() {
 
             @Override
