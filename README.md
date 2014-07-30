@@ -68,7 +68,7 @@ Observable<String> items =
 ```
 
 Note that if you want the ```Observable<String>``` to be emitting line by line then wrap 
-it with this call ```StringObservable.split(observable, System.getProperty("line.separator"))``` from the *rxjava-string* artifact.
+it with a call like ```StringObservable.split(observable, "\n")```. ```StringObservable``` is in the RxJava *rxjava-string* artifact.
 
 ###Tail a text file without NIO
 
