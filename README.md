@@ -61,15 +61,19 @@ Observable<String> items =
 ```
 or, using defaults (will use default charset):
 ```java
-import com.github.davidmoten.rx.FileObservable;
-import rx.Observable;
-import java.io.File; 
- 
 Observable<String> items = 
      FileObservable.tailer()
                    .file("var/log/server.log")
                    .tailText();
 ```
+###Tail a binary file with NIO
+```java
+Observable<byte[]> items = 
+     FileObservable.tailer()
+                   .file("/tmp/dump.bin")
+                   .tail();
+```
+
 ###Tail a text file without NIO
 
 The above example uses a ```WatchService``` to generate ```WatchEvent```s to prompt rereads of the end of the file to perform the tail.
@@ -80,12 +84,17 @@ To use polling instead (say every 5 seconds):
 Observable<String> items = 
                    .tailer()
                    .file(new File("var/log/server.log"))
-                   .startPosition(0)
-                   .sampleTimeMs(500)
-                   .chunkSize(8192)
-                   .utf8()
                    .source(Observable.interval(5, TimeUnit.SECONDS)
                    .tailText();
+```
+
+###Tail a binary file without NIO
+```java
+Observable<byte[]> items = 
+     FileObservable.tailer()
+                   .file("/tmp/dump.bin")
+                   .source(Observable.interval(5, TimeUnit.SECONDS)
+                   .tail();
 ```
 
 
