@@ -294,6 +294,10 @@ public final class FileObservable {
             return this;
         }
 
+        public Builder file(String filename) {
+            return file(new File(filename));
+        }
+
         /**
          * The startPosition in bytes in the file to commence the tail from. 0 =
          * start of file. Defaults to 0.

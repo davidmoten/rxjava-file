@@ -49,13 +49,24 @@ import java.io.File;
  
 Observable<String> items = 
      FileObservable.tailer()
-                   .file(new File("var/log/server.log"))
+                   .file("var/log/server.log")
                    .startPosition(0)
                    .sampleTimeMs(500)
                    .chunkSize(8192)
                    .utf8()
                    .tailText();
                      
+```
+or, using defaults (will use default charset):
+```java
+import com.github.davidmoten.rx.FileObservable;
+import rx.Observable;
+import java.io.File; 
+ 
+Observable<String> items = 
+     FileObservable.tailer()
+                   .file("var/log/server.log")
+                   .tailText();
 ```
 
 The above example uses a ```WatchService``` to generate ```WatchEvent```s to prompt rereads of the end of the file to perform the tail.
