@@ -67,6 +67,9 @@ Observable<String> items =
                    .tailText();
 ```
 
+Note that if you want the ```Observable<String>``` to be emitting line by line then wrap 
+it with this call ```StringObservable.split(observable, System.getProperty("line.separator"))``` from the *rxjava-string* artifact.
+
 ###Tail a text file without NIO
 
 The above example uses a ```WatchService``` to generate ```WatchEvent```s to prompt rereads of the end of the file to perform the tail.
