@@ -40,7 +40,7 @@ maven clean install
 Examples
 --------------
 
-###With NIO
+###Tail a text file with NIO
 
 Tail the lines of the text log file ```/var/log/server.log``` as an ```Observable<String>```:
 
@@ -70,7 +70,7 @@ Observable<String> items =
                    .file("var/log/server.log")
                    .tailText();
 ```
-###Without NIO
+###Tail a text file without NIO
 
 The above example uses a ```WatchService``` to generate ```WatchEvent```s to prompt rereads of the end of the file to perform the tail.
 
