@@ -44,29 +44,34 @@ Tail the lines of the text log file ```/var/log/server.log``` as an ```Observabl
 
 ```java
 import com.github.davidmoten.rx.FileObservable;
-import java.nio.charset.Charset;
 import rx.Observable;
 import java.io.File; 
  
-File file = new File("var/log/server.log");
-long startPosition = 0;
-long sampleTimeMs = 500;
-int chunkSize = 8192; 
-Observable<String> lines = 
-     FileObservable.tailTextFile(
-                     file, startPosition,
-                     sampleTimeMs, chunkSize, Charset.forName("UTF-8"));
+Observable<String> items = 
+     FileObservable.tailer()
+                   .file(new File("var/log/server.log"))
+                   .startPosition(0)
+                   .sampleTimeMs(500)
+                   .chunkSize(8192)
+                   .utf8()
+                   .tailText();
+                     
 ```
+
 The above example uses a ```WatchService``` to generate ```WatchEvent```s to prompt rereads of the end of the file to perform the tail.
 
 To use polling instead (say every 5 seconds):
 
 ```java
-Observable<String> lines = 
-     FileObservable.tailTextFile(
-     			file, startPosition,
-     			Charset.forName("UTF-8"),
-     			Observable.interval(5, TimeUnit.SECONDS));
+Observable<String> items = 
+                   .tailer()
+                   .file(new File("var/log/server.log"))
+                   .startPosition(0)
+                   .sampleTimeMs(500)
+                   .chunkSize(8192)
+                   .utf8()
+                   .source(Observable.interval(5, TimeUnit.SECONDS)
+                   .tailText();
 ```
 
 

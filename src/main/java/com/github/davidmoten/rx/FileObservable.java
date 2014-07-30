@@ -125,7 +125,7 @@ public final class FileObservable {
      * emitted.
      * 
      * @param file
-     *            the file to tail
+     *            the file to tail, cannot be null
      * @param startPosition
      *            start tailing file at position in bytes
      * @param charset
@@ -136,8 +136,8 @@ public final class FileObservable {
      * @return
      */
     public final static Observable<String> tailTextFile(File file, long startPosition,
-            Charset charset, Observable<?> events) {
-        return toLines(events.lift(new OperatorFileTailer(file, startPosition)), charset);
+            int chunkSize, Charset charset, Observable<?> events) {
+        return toLines(events.lift(new OperatorFileTailer(file, startPosition, chunkSize)), charset);
     }
 
     /**
@@ -263,4 +263,109 @@ public final class FileObservable {
             return from(watchService);
         }
     };
+
+    public static Builder tailer() {
+        return new Builder();
+    }
+
+    public static class Builder {
+
+        private File file = null;
+        private long startPosition = 0;
+        private long sampleTimeMs = 500;
+        private int chunkSize = 8192;
+        private Charset charset = Charset.defaultCharset();
+        private Observable<?> source = null;
+
+        private Builder() {
+        }
+
+        /**
+         * The file to tail.
+         * 
+         * @param file
+         * @return this
+         */
+        public Builder file(File file) {
+            this.file = file;
+            this.source = from(file, StandardWatchEventKinds.ENTRY_CREATE,
+                    StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY,
+                    StandardWatchEventKinds.OVERFLOW);
+            return this;
+        }
+
+        /**
+         * The startPosition in bytes in the file to commence the tail from. 0 =
+         * start of file. Defaults to 0.
+         * 
+         * @param startPosition
+         * @return this
+         */
+        public Builder startPosition(long startPosition) {
+            this.startPosition = startPosition;
+            return this;
+        }
+
+        /**
+         * Specifies sampling to apply to the source observable (which could be
+         * very busy if a lot of writes are occurring for example).
+         * 
+         * @param sampleTimeMs
+         * @return this
+         */
+        public Builder sampleTimeMs(long sampleTimeMs) {
+            this.sampleTimeMs = sampleTimeMs;
+            return this;
+        }
+
+        /**
+         * Emissions from the tailed file will be no bigger than this.
+         * 
+         * @param chunkSize
+         * @return this
+         */
+        public Builder chunkSize(int chunkSize) {
+            this.chunkSize = chunkSize;
+            return this;
+        }
+
+        /**
+         * The charset of the file. Only used for tailing a text file.
+         * 
+         * @param charset
+         * @return this
+         */
+        public Builder charset(Charset charset) {
+            this.charset = charset;
+            return this;
+        }
+
+        /**
+         * The charset of the file. Only used for tailing a text file.
+         * 
+         * @param charset
+         * @return this
+         */
+        public Builder charset(String charset) {
+            return charset(Charset.forName(charset));
+        }
+
+        public Builder utf8() {
+            return charset("UTF-8");
+        }
+
+        public Builder source(Observable<?> source) {
+            this.source = source;
+            return this;
+        }
+
+        public Observable<byte[]> tail() {
+            return tailFile(file, startPosition, sampleTimeMs, chunkSize, source);
+        }
+
+        public Observable<String> tailText() {
+            return tailTextFile(file, startPosition, chunkSize, charset, source);
+        }
+    }
+
 }

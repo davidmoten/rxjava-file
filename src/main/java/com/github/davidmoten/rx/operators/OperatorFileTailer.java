@@ -40,6 +40,8 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
      *            start tailing the file after this many bytes
      */
     public OperatorFileTailer(File file, long startPosition, int maxBytesPerEmission) {
+        if (file == null)
+            throw new NullPointerException("file cannot be null");
         this.file = file;
         this.currentPosition.set(startPosition);
         this.maxBytesPerEmission = maxBytesPerEmission;
@@ -77,8 +79,7 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
                 if (event instanceof WatchEvent) {
                     WatchEvent<?> w = (WatchEvent<?>) event;
                     String kind = w.kind().name();
-                    if (kind.equals(StandardWatchEventKinds.ENTRY_DELETE.name())
-                            || kind.equals(StandardWatchEventKinds.ENTRY_CREATE.name())) {
+                    if (kind.equals(StandardWatchEventKinds.ENTRY_CREATE.name())) {
                         currentPosition.set(0);
                     }
                 }

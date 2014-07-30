@@ -117,8 +117,9 @@ public class FileObservableTest {
         log.delete();
         log.createNewFile();
         append(log, "a0");
-        Observable<String> tailer = FileObservable.tailTextFile(log, 0, 50,
-                Charset.forName("UTF-8"));
+
+        Observable<String> tailer = FileObservable.tailer().file(log).sampleTimeMs(50).utf8()
+                .tailText();
         final List<String> list = new ArrayList<String>();
         Subscription sub = tailer.subscribeOn(Schedulers.io()).subscribe(new Action1<String>() {
             @Override
@@ -143,8 +144,8 @@ public class FileObservableTest {
         log.delete();
 
         append(log, "a0");
-        Observable<String> tailer = FileObservable.tailTextFile(log, 0, 50,
-                Charset.forName("UTF-8"));
+        Observable<String> tailer = FileObservable.tailer().file(log).startPosition(0)
+                .sampleTimeMs(50).utf8().tailText();
         final List<String> list = new ArrayList<String>();
         Subscription sub = tailer.subscribeOn(Schedulers.io()).subscribe(new Action1<String>() {
             @Override
@@ -185,8 +186,9 @@ public class FileObservableTest {
         out.println("line 1");
         out.flush();
         final List<String> list = new ArrayList<String>();
-        Subscription sub = FileObservable
-                .tailTextFile(file, file.length(), 10, Charset.defaultCharset())
+        Subscription sub = FileObservable.tailer().file(file).startPosition(file.length())
+                .sampleTimeMs(10).utf8().tailText()
+                // for each
                 .doOnNext(new Action1<String>() {
 
                     @Override
@@ -214,8 +216,9 @@ public class FileObservableTest {
         out.println("line 1");
         out.flush();
         final List<String> list = new ArrayList<String>();
-        Subscription sub = FileObservable
-                .tailTextFile(file, file.length(), 10, Charset.defaultCharset())
+        Subscription sub = FileObservable.tailer().file(file).startPosition(file.length())
+                .sampleTimeMs(10).utf8().tailText()
+                // for each
                 .doOnNext(new Action1<String>() {
 
                     @Override
@@ -227,8 +230,10 @@ public class FileObservableTest {
         Thread.sleep(100);
         assertTrue(list.isEmpty());
         out.close();
-        // delete file and make it bigger than it was
+        // delete file then make it bigger than it was
         assertTrue(file.delete());
+        // give NIO time for delete event to propagate
+        Thread.sleep(100);
         out = new PrintStream(file);
         out.println("line 2");
         out.println("line 3");
