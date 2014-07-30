@@ -66,13 +66,6 @@ Observable<String> items =
                    .file("var/log/server.log")
                    .tailText();
 ```
-###Tail a binary file with NIO
-```java
-Observable<byte[]> items = 
-     FileObservable.tailer()
-                   .file("/tmp/dump.bin")
-                   .tail();
-```
 
 ###Tail a text file without NIO
 
@@ -86,6 +79,14 @@ Observable<String> items =
                    .file(new File("var/log/server.log"))
                    .source(Observable.interval(5, TimeUnit.SECONDS)
                    .tailText();
+```
+
+###Tail a binary file with NIO
+```java
+Observable<byte[]> items = 
+     FileObservable.tailer()
+                   .file("/tmp/dump.bin")
+                   .tail();
 ```
 
 ###Tail a binary file without NIO
