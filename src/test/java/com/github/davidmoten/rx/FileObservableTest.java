@@ -232,8 +232,6 @@ public class FileObservableTest {
         out.close();
         // delete file then make it bigger than it was
         assertTrue(file.delete());
-        // give NIO time for delete event to propagate
-        Thread.sleep(100);
         out = new PrintStream(file);
         out.println("line 2");
         out.println("line 3");
