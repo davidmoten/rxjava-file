@@ -63,17 +63,19 @@ public final class FileObservable {
     /**
      * Returns an {@link Observable} that uses given given observable to push
      * modified events to an observable that reads and reports new sequences of
-     * bytes to a subscriber. The NIO {@link WatchService} events are sampled
-     * according to <code>sampleTimeMs</code> so that lots of discrete activity
-     * on a file (for example a log file with very frequent entries) does not
-     * prompt an inordinate number of file reads to pick up changes.
+     * bytes to a subscriber. The NIO {@link WatchService} MODIFY and OVERFLOW
+     * events are sampled according to <code>sampleTimeMs</code> so that lots of
+     * discrete activity on a file (for example a log file with very frequent
+     * entries) does not prompt an inordinate number of file reads to pick up
+     * changes. File create events are not sampled and are always passed
+     * through.
      * 
      * @param file
      *            the file to tail
      * @param startPosition
      *            start tailing file at position in bytes
      * @param sampleTimeMs
-     *            sample time in millis
+     *            sample time in millis for MODIFY and OVERFLOW events
      * @param chunkSize
      *            max array size of each element emitted by the Observable. Is
      *            also used as the buffer size for reading from the file. Try
@@ -91,17 +93,19 @@ public final class FileObservable {
     /**
      * Returns an {@link Observable} that uses NIO {@link WatchService} (and a
      * dedicated thread) to push modified events to an observable that reads and
-     * reports new lines to a subscriber. The NIO WatchService events are
-     * sampled according to <code>sampleTimeMs</code> so that lots of discrete
-     * activity on a file (for example a log file with very frequent entries)
-     * does not prompt an inordinate number of file reads to pick up changes.
+     * reports new lines to a subscriber. The NIO WatchService MODIFY and
+     * OVERFLOW events are sampled according to <code>sampleTimeMs</code> so
+     * that lots of discrete activity on a file (for example a log file with
+     * very frequent entries) does not prompt an inordinate number of file reads
+     * to pick up changes. File create events are not sampled and are always
+     * passed through.
      * 
      * @param file
      *            the file to tail
      * @param startPosition
      *            start tailing file at position in bytes
      * @param sampleTimeMs
-     *            sample time in millis
+     *            sample time in millis for MODIFY and OVERFLOW events
      * @param charset
      *            the character set to use to decode the bytes to a string
      * @return
@@ -226,7 +230,6 @@ public final class FileObservable {
                 if (file.isDirectory())
                     ok = true;
                 else if (StandardWatchEventKinds.OVERFLOW.equals(event.kind()))
-                    // TODO allow overflow events through?
                     ok = true;
                 else {
                     Object context = event.context();
@@ -268,7 +271,7 @@ public final class FileObservable {
 
             @Override
             public Observable<?> call(GroupedObservable<Boolean, ?> group) {
-                //if is modify or overflow WatchEvent
+                // if is modify or overflow WatchEvent
                 if (group.getKey())
                     return group.sample(sampleTimeMs, TimeUnit.MILLISECONDS);
                 else
@@ -341,7 +344,10 @@ public final class FileObservable {
 
         /**
          * Specifies sampling to apply to the source observable (which could be
-         * very busy if a lot of writes are occurring for example).
+         * very busy if a lot of writes are occurring for example). Sampling is
+         * only applied to file updates (MODIFY and OVERFLOW), file creation
+         * events are always passed through. File deletion events are ignored
+         * (in fact are not requested of NIO).
          * 
          * @param sampleTimeMs
          * @return this

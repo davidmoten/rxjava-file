@@ -11,7 +11,7 @@ Observable utilities for files:
 * or trigger tail updates using any Observable
 * stream ```WatchEvent```s from a ```WatchService```
 
-[Release notes](http://davidmoten.github.io/rxjava-file/RELEASE_NOTES.md)
+[Release Notes](RELEASE_NOTES.md)
 
 Continuous integration with Jenkins: <a href="https://xuml-tools.ci.cloudbees.com/"><img src="https://xuml-tools.ci.cloudbees.com/job/rxjava-file/badge/icon"/></a>
 
