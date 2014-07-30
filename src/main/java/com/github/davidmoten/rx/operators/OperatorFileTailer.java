@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
 import java.util.concurrent.atomic.AtomicLong;
 
 import rx.Observable;
@@ -71,7 +73,15 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
         return new Func1<Object, Observable<byte[]>>() {
             @Override
             public Observable<byte[]> call(Object event) {
-
+                // reset current position if file is moved or deleted
+                if (event instanceof WatchEvent) {
+                    WatchEvent<?> w = (WatchEvent<?>) event;
+                    String kind = w.kind().name();
+                    if (kind.equals(StandardWatchEventKinds.ENTRY_DELETE.name())
+                            || kind.equals(StandardWatchEventKinds.ENTRY_CREATE.name())) {
+                        currentPosition.set(0);
+                    }
+                }
                 long length = file.length();
                 if (length > currentPosition.get()) {
                     try {
@@ -86,11 +96,6 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
                     } catch (IOException e) {
                         return Observable.error(e);
                     }
-                } else if (length < currentPosition.get()) {
-                    // file has shrunk in size so has probably been
-                    // rolled over, reset the current position to zero
-                    currentPosition.set(0);
-                    return Observable.empty();
                 } else
                     return Observable.empty();
             }

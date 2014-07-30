@@ -48,9 +48,11 @@ public final class FileObservable {
      *            don't know what to put here.
      * @return
      */
-    public final static Observable<byte[]> tailFile(File file, long startPosition, long sampleTimeMs, int chunkSize) {
-        return from(file, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY,
-                StandardWatchEventKinds.OVERFLOW)
+    public final static Observable<byte[]> tailFile(File file, long startPosition,
+            long sampleTimeMs, int chunkSize) {
+        return from(file, StandardWatchEventKinds.ENTRY_CREATE,
+                StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.OVERFLOW,
+                StandardWatchEventKinds.ENTRY_DELETE)
         // don't care about the event details, just that there is one
                 .cast(Object.class)
                 // get lines once on subscription so we tail the lines
@@ -84,8 +86,8 @@ public final class FileObservable {
      *            don't know what to put here.
      * @return
      */
-    public final static Observable<byte[]> tailFile(File file, long startPosition, long sampleTimeMs, int chunkSize,
-            Observable<?> events) {
+    public final static Observable<byte[]> tailFile(File file, long startPosition,
+            long sampleTimeMs, int chunkSize, Observable<?> events) {
         return events
         // emit a max of 1 event per sample period
                 .sample(sampleTimeMs, TimeUnit.MILLISECONDS)
@@ -111,9 +113,10 @@ public final class FileObservable {
      *            the character set to use to decode the bytes to a string
      * @return
      */
-    public final static Observable<String> tailTextFile(File file, long startPosition, long sampleTimeMs,
-            Charset charset) {
-        return toLines(tailFile(file, startPosition, sampleTimeMs, DEFAULT_MAX_BYTES_PER_EMISSION), charset);
+    public final static Observable<String> tailTextFile(File file, long startPosition,
+            long sampleTimeMs, Charset charset) {
+        return toLines(tailFile(file, startPosition, sampleTimeMs, DEFAULT_MAX_BYTES_PER_EMISSION),
+                charset);
     }
 
     /**
@@ -132,8 +135,8 @@ public final class FileObservable {
      *            {@link Observable#interval(long, TimeUnit)} for example.
      * @return
      */
-    public final static Observable<String> tailTextFile(File file, long startPosition, Charset charset,
-            Observable<?> events) {
+    public final static Observable<String> tailTextFile(File file, long startPosition,
+            Charset charset, Observable<?> events) {
         return toLines(events.lift(new OperatorFileTailer(file, startPosition)), charset);
     }
 
@@ -184,7 +187,8 @@ public final class FileObservable {
      * @return
      */
     @SafeVarargs
-    public final static Observable<WatchService> watchService(final File file, final Kind<?>... kinds) {
+    public final static Observable<WatchService> watchService(final File file,
+            final Kind<?>... kinds) {
         return Observable.create(new OnSubscribe<WatchService>() {
 
             @Override

@@ -179,7 +179,6 @@ public class FileObservableTest {
     @Test
     public void testTailTextFileStreamsFromEndOfFileIfSpecified() throws FileNotFoundException,
             InterruptedException {
-        // File file = new File("/var/log/syslog");
         File file = new File("target/test1.txt");
         file.delete();
         PrintStream out = new PrintStream(file);
@@ -202,6 +201,40 @@ public class FileObservableTest {
         out.flush();
         Thread.sleep(100);
         assertEquals(Arrays.asList("line 2"), list);
+        sub.unsubscribe();
+        out.close();
+    }
+
+    @Test
+    public void testTailTextFileStreamsFromEndOfFileIfDeleteOccurs() throws InterruptedException,
+            IOException {
+        File file = new File("target/test2.txt");
+        file.delete();
+        PrintStream out = new PrintStream(file);
+        out.println("line 1");
+        out.flush();
+        final List<String> list = new ArrayList<String>();
+        Subscription sub = FileObservable
+                .tailTextFile(file, file.length(), 10, Charset.defaultCharset())
+                .doOnNext(new Action1<String>() {
+
+                    @Override
+                    public void call(String line) {
+                        System.out.println(line);
+                        list.add(line);
+                    }
+                }).subscribeOn(Schedulers.newThread()).subscribe();
+        Thread.sleep(100);
+        assertTrue(list.isEmpty());
+        out.close();
+        // delete file and make it bigger than it was
+        assertTrue(file.delete());
+        out = new PrintStream(file);
+        out.println("line 2");
+        out.println("line 3");
+        out.flush();
+        Thread.sleep(100);
+        assertEquals(Arrays.asList("line 2", "line 3"), list);
         sub.unsubscribe();
         out.close();
     }
