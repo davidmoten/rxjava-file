@@ -29,6 +29,7 @@ import org.mockito.Mockito;
 import rx.Observable;
 import rx.Observer;
 import rx.Subscription;
+import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 
@@ -113,26 +114,29 @@ public class FileObservableTest {
 
     @Test
     public void testFileTailingFromStartOfFile() throws InterruptedException, IOException {
-        File log = new File("target/test.log");
+        final File log = new File("target/test.log");
         log.delete();
         log.createNewFile();
         append(log, "a0");
 
-        Observable<String> tailer = FileObservable.tailer().file(log).sampleTimeMs(50).utf8()
-                .tailText();
+        Observable<String> tailer = FileObservable.tailer().file(log).onWatchStarted(new Action0() {
+            @Override
+            public void call() {
+                append(log, "a1");
+                append(log, "a2");
+            }
+        }).sampleTimeMs(50).utf8().tailText();
         final List<String> list = new ArrayList<String>();
+        final CountDownLatch latch = new CountDownLatch(3);
         Subscription sub = tailer.subscribeOn(Schedulers.io()).subscribe(new Action1<String>() {
             @Override
             public void call(String line) {
                 System.out.println("received: '" + line + "'");
                 list.add(line);
+                latch.countDown();
             }
         });
-
-        Thread.sleep(500);
-        append(log, "a1");
-        append(log, "a2");
-        Thread.sleep(500);
+        assertTrue(latch.await(10, TimeUnit.SECONDS));
         assertEquals(Arrays.asList("a0", "a1", "a2"), list);
         sub.unsubscribe();
     }
@@ -140,26 +144,34 @@ public class FileObservableTest {
     @Test
     public void testFileTailingWhenFileIsCreatedAfterSubscription() throws InterruptedException,
             IOException {
-        File log = new File("target/test.log");
+        final File log = new File("target/test.log");
         log.delete();
 
         append(log, "a0");
         Observable<String> tailer = FileObservable.tailer().file(log).startPosition(0)
-                .sampleTimeMs(50).utf8().tailText();
+                .sampleTimeMs(50).utf8().onWatchStarted(new Action0() {
+                    @Override
+                    public void call() {
+                        try {
+                            log.createNewFile();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                        append(log, "a1");
+                        append(log, "a2");
+                    }
+                }).tailText();
         final List<String> list = new ArrayList<String>();
+        final CountDownLatch latch = new CountDownLatch(3);
         Subscription sub = tailer.subscribeOn(Schedulers.io()).subscribe(new Action1<String>() {
             @Override
             public void call(String line) {
                 System.out.println("received: '" + line + "'");
                 list.add(line);
+                latch.countDown();
             }
         });
-
-        Thread.sleep(500);
-        log.createNewFile();
-        append(log, "a1");
-        append(log, "a2");
-        Thread.sleep(500);
+        assertTrue(latch.await(10, TimeUnit.SECONDS));
         assertEquals(Arrays.asList("a0", "a1", "a2"), list);
         sub.unsubscribe();
     }
