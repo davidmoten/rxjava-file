@@ -161,6 +161,7 @@ public class FileObservableTest {
                         append(log, "a2");
                     }
                 }).tailText();
+
         final List<String> list = new ArrayList<String>();
         final CountDownLatch latch = new CountDownLatch(3);
         Subscription sub = tailer.subscribeOn(Schedulers.io()).subscribe(new Action1<String>() {
@@ -244,8 +245,6 @@ public class FileObservableTest {
         out.close();
         // delete file then make it bigger than it was
         assertTrue(file.delete());
-        // give NIO time for delete event to propagate
-        Thread.sleep(100);
         out = new PrintStream(file);
         out.println("line 2");
         out.println("line 3");

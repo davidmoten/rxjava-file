@@ -16,6 +16,7 @@ import rx.Subscriber;
 import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Func1;
+import rx.observables.GroupedObservable;
 import rx.observables.StringObservable;
 
 import com.github.davidmoten.rx.operators.OperatorFileTailer;
@@ -52,35 +53,32 @@ public final class FileObservable {
      */
     public final static Observable<byte[]> tailFile(File file, long startPosition,
             long sampleTimeMs, int chunkSize) {
-        return from(file, StandardWatchEventKinds.ENTRY_CREATE,
-                StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.OVERFLOW,
-                StandardWatchEventKinds.ENTRY_DELETE)
+        Observable<Object> events = from(file, StandardWatchEventKinds.ENTRY_CREATE,
+                StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.OVERFLOW)
         // don't care about the event details, just that there is one
                 .cast(Object.class)
                 // get lines once on subscription so we tail the lines
-                // in the
-                // file at startup
-                .startWith(new Object())
-                // emit a max of 1 event per sample period
-                .sample(sampleTimeMs, TimeUnit.MILLISECONDS)
-                // tail file triggered by events
-                .lift(new OperatorFileTailer(file, startPosition, chunkSize));
+                // in the file at startup
+                .startWith(new Object());
+        return tailFile(file, startPosition, sampleTimeMs, chunkSize, events);
     }
 
     /**
      * Returns an {@link Observable} that uses given given observable to push
      * modified events to an observable that reads and reports new sequences of
-     * bytes to a subscriber. The NIO {@link WatchService} events are sampled
-     * according to <code>sampleTimeMs</code> so that lots of discrete activity
-     * on a file (for example a log file with very frequent entries) does not
-     * prompt an inordinate number of file reads to pick up changes.
+     * bytes to a subscriber. The NIO {@link WatchService} MODIFY and OVERFLOW
+     * events are sampled according to <code>sampleTimeMs</code> so that lots of
+     * discrete activity on a file (for example a log file with very frequent
+     * entries) does not prompt an inordinate number of file reads to pick up
+     * changes. File create events are not sampled and are always passed
+     * through.
      * 
      * @param file
      *            the file to tail
      * @param startPosition
      *            start tailing file at position in bytes
      * @param sampleTimeMs
-     *            sample time in millis
+     *            sample time in millis for MODIFY and OVERFLOW events
      * @param chunkSize
      *            max array size of each element emitted by the Observable. Is
      *            also used as the buffer size for reading from the file. Try
@@ -90,27 +88,27 @@ public final class FileObservable {
      */
     public final static Observable<byte[]> tailFile(File file, long startPosition,
             long sampleTimeMs, int chunkSize, Observable<?> events) {
-        return events
-        // emit a max of 1 event per sample period
-                .sample(sampleTimeMs, TimeUnit.MILLISECONDS)
-                // tail file triggered by events
+        return sampleModifyOrOverflowEventsOnly(events, sampleTimeMs)
+        // tail file triggered by events
                 .lift(new OperatorFileTailer(file, startPosition, chunkSize));
     }
 
     /**
      * Returns an {@link Observable} that uses NIO {@link WatchService} (and a
      * dedicated thread) to push modified events to an observable that reads and
-     * reports new lines to a subscriber. The NIO WatchService events are
-     * sampled according to <code>sampleTimeMs</code> so that lots of discrete
-     * activity on a file (for example a log file with very frequent entries)
-     * does not prompt an inordinate number of file reads to pick up changes.
+     * reports new lines to a subscriber. The NIO WatchService MODIFY and
+     * OVERFLOW events are sampled according to <code>sampleTimeMs</code> so
+     * that lots of discrete activity on a file (for example a log file with
+     * very frequent entries) does not prompt an inordinate number of file reads
+     * to pick up changes. File create events are not sampled and are always
+     * passed through.
      * 
      * @param file
      *            the file to tail
      * @param startPosition
      *            start tailing file at position in bytes
      * @param sampleTimeMs
-     *            sample time in millis
+     *            sample time in millis for MODIFY and OVERFLOW events
      * @param charset
      *            the character set to use to decode the bytes to a string
      * @return
@@ -265,7 +263,6 @@ public final class FileObservable {
                 if (file.isDirectory())
                     ok = true;
                 else if (StandardWatchEventKinds.OVERFLOW.equals(event.kind()))
-                    // TODO allow overflow events through?
                     ok = true;
                 else {
                     Object context = event.context();
@@ -291,6 +288,47 @@ public final class FileObservable {
         @Override
         public Observable<WatchEvent<?>> call(WatchService watchService) {
             return from(watchService);
+        }
+    };
+
+    private static Observable<Object> sampleModifyOrOverflowEventsOnly(Observable<?> events,
+            final long sampleTimeMs) {
+        return events
+        // group by true if is modify or overflow, false otherwise
+                .groupBy(IS_MODIFY_OR_OVERFLOW)
+                // only sample if is modify or overflow
+                .flatMap(sampleIfTrue(sampleTimeMs));
+    }
+
+    private static Func1<GroupedObservable<Boolean, ?>, Observable<?>> sampleIfTrue(
+            final long sampleTimeMs) {
+        return new Func1<GroupedObservable<Boolean, ?>, Observable<?>>() {
+
+            @Override
+            public Observable<?> call(GroupedObservable<Boolean, ?> group) {
+                // if is modify or overflow WatchEvent
+                if (group.getKey())
+                    return group.sample(sampleTimeMs, TimeUnit.MILLISECONDS);
+                else
+                    return group;
+            }
+        };
+    }
+
+    private static Func1<Object, Boolean> IS_MODIFY_OR_OVERFLOW = new Func1<Object, Boolean>() {
+
+        @Override
+        public Boolean call(Object event) {
+            if (event instanceof WatchEvent) {
+                WatchEvent<?> w = (WatchEvent<?>) event;
+                String kind = w.kind().name();
+                if (kind.equals(StandardWatchEventKinds.ENTRY_MODIFY.name())
+                        || kind.equals(StandardWatchEventKinds.OVERFLOW.name())) {
+                    return true;
+                } else
+                    return false;
+            } else
+                return false;
         }
     };
 
@@ -350,7 +388,10 @@ public final class FileObservable {
 
         /**
          * Specifies sampling to apply to the source observable (which could be
-         * very busy if a lot of writes are occurring for example).
+         * very busy if a lot of writes are occurring for example). Sampling is
+         * only applied to file updates (MODIFY and OVERFLOW), file creation
+         * events are always passed through. File deletion events are ignored
+         * (in fact are not requested of NIO).
          * 
          * @param sampleTimeMs
          * @return this
@@ -413,8 +454,7 @@ public final class FileObservable {
         private Observable<?> getSource() {
             if (source == null)
                 return from(file, onWatchStarted, StandardWatchEventKinds.ENTRY_CREATE,
-                        StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY,
-                        StandardWatchEventKinds.OVERFLOW);
+                        StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.OVERFLOW);
             else
                 return source;
 
