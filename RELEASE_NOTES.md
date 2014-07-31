@@ -1,6 +1,9 @@
 Release Notes
 ---------------
-###Version 0.2-SNAPSHOT
+###Version 0.3-SNAPSHOT
+* #3 add onWatchStart action to tailer to make tests non-deterministic
+
+###Version 0.2
 * update rxjava to 0.19.6
 * minor api changes to ```FileObservable.tailFile``` and ```FileObservable.tailTextFile```
 * #1 FileObservable.tailTextFile from end of file does not work properly
