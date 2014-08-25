@@ -13,6 +13,8 @@ import java.util.concurrent.TimeUnit;
 import rx.Observable;
 import rx.Observable.OnSubscribe;
 import rx.Subscriber;
+import rx.functions.Action0;
+import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.observables.GroupedObservable;
 import rx.observables.StringObservable;
@@ -49,7 +51,8 @@ public final class FileObservable {
      *            don't know what to put here.
      * @return
      */
-    public final static Observable<byte[]> tailFile(File file, long startPosition, long sampleTimeMs, int chunkSize) {
+    public final static Observable<byte[]> tailFile(File file, long startPosition,
+            long sampleTimeMs, int chunkSize) {
         Observable<Object> events = from(file, StandardWatchEventKinds.ENTRY_CREATE,
                 StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.OVERFLOW)
         // don't care about the event details, just that there is one
@@ -83,8 +86,8 @@ public final class FileObservable {
      *            don't know what to put here.
      * @return
      */
-    public final static Observable<byte[]> tailFile(File file, long startPosition, long sampleTimeMs, int chunkSize,
-            Observable<?> events) {
+    public final static Observable<byte[]> tailFile(File file, long startPosition,
+            long sampleTimeMs, int chunkSize, Observable<?> events) {
         return sampleModifyOrOverflowEventsOnly(events, sampleTimeMs)
         // tail file triggered by events
                 .lift(new OperatorFileTailer(file, startPosition, chunkSize));
@@ -110,9 +113,10 @@ public final class FileObservable {
      *            the character set to use to decode the bytes to a string
      * @return
      */
-    public final static Observable<String> tailTextFile(File file, long startPosition, long sampleTimeMs,
-            Charset charset) {
-        return toLines(tailFile(file, startPosition, sampleTimeMs, DEFAULT_MAX_BYTES_PER_EMISSION), charset);
+    public final static Observable<String> tailTextFile(File file, long startPosition,
+            long sampleTimeMs, Charset charset) {
+        return toLines(tailFile(file, startPosition, sampleTimeMs, DEFAULT_MAX_BYTES_PER_EMISSION),
+                charset);
     }
 
     /**
@@ -131,8 +135,8 @@ public final class FileObservable {
      *            {@link Observable#interval(long, TimeUnit)} for example.
      * @return
      */
-    public final static Observable<String> tailTextFile(File file, long startPosition, int chunkSize, Charset charset,
-            Observable<?> events) {
+    public final static Observable<String> tailTextFile(File file, long startPosition,
+            int chunkSize, Charset charset, Observable<?> events) {
         return toLines(events.lift(new OperatorFileTailer(file, startPosition, chunkSize)), charset);
     }
 
@@ -165,8 +169,36 @@ public final class FileObservable {
      */
     @SafeVarargs
     public final static Observable<WatchEvent<?>> from(final File file, Kind<?>... kinds) {
+        return from(file, null, kinds);
+    }
+
+    /**
+     * If file does not exist at subscribe time then is assumed to not be a
+     * directory. If the file is not a directory (bearing in mind the aforesaid
+     * assumption) then a {@link WatchService} is set up on its parent and
+     * {@link WatchEvent}s of the given kinds are filtered to concern the file
+     * in question. If the file is a directory then a {@link WatchService} is
+     * set up on the directory and all events are passed through of the given
+     * kinds.
+     * 
+     * @param file
+     * @param onWatchStarted
+     *            called when WatchService is created
+     * @param kinds
+     * @return
+     */
+    public final static Observable<WatchEvent<?>> from(final File file,
+            final Action0 onWatchStarted, Kind<?>... kinds) {
         return watchService(file, kinds)
-        // emit events from the WatchService
+        // when watch service created call onWatchStarted
+                .doOnNext(new Action1<WatchService>() {
+                    @Override
+                    public void call(WatchService w) {
+                        if (onWatchStarted != null)
+                            onWatchStarted.call();
+                    }
+                })
+                // emit events from the WatchService
                 .flatMap(TO_WATCH_EVENTS)
                 // restrict to events related to the file
                 .filter(onlyRelatedTo(file));
@@ -183,7 +215,8 @@ public final class FileObservable {
      * @return
      */
     @SafeVarargs
-    public final static Observable<WatchService> watchService(final File file, final Kind<?>... kinds) {
+    public final static Observable<WatchService> watchService(final File file,
+            final Kind<?>... kinds) {
         return Observable.create(new OnSubscribe<WatchService>() {
 
             @Override
@@ -258,7 +291,8 @@ public final class FileObservable {
         }
     };
 
-    private static Observable<Object> sampleModifyOrOverflowEventsOnly(Observable<?> events, final long sampleTimeMs) {
+    private static Observable<Object> sampleModifyOrOverflowEventsOnly(Observable<?> events,
+            final long sampleTimeMs) {
         return events
         // group by true if is modify or overflow, false otherwise
                 .groupBy(IS_MODIFY_OR_OVERFLOW)
@@ -266,7 +300,8 @@ public final class FileObservable {
                 .flatMap(sampleIfTrue(sampleTimeMs));
     }
 
-    private static Func1<GroupedObservable<Boolean, ?>, Observable<?>> sampleIfTrue(final long sampleTimeMs) {
+    private static Func1<GroupedObservable<Boolean, ?>, Observable<?>> sampleIfTrue(
+            final long sampleTimeMs) {
         return new Func1<GroupedObservable<Boolean, ?>, Observable<?>>() {
 
             @Override
@@ -309,6 +344,12 @@ public final class FileObservable {
         private int chunkSize = 8192;
         private Charset charset = Charset.defaultCharset();
         private Observable<?> source = null;
+        private Action0 onWatchStarted = new Action0() {
+            @Override
+            public void call() {
+                // do nothing
+            }
+        };
 
         private Builder() {
         }
@@ -321,13 +362,16 @@ public final class FileObservable {
          */
         public Builder file(File file) {
             this.file = file;
-            this.source = from(file, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY,
-                    StandardWatchEventKinds.OVERFLOW);
             return this;
         }
 
         public Builder file(String filename) {
             return file(new File(filename));
+        }
+
+        public Builder onWatchStarted(Action0 onWatchStarted) {
+            this.onWatchStarted = onWatchStarted;
+            return this;
         }
 
         /**
@@ -399,12 +443,23 @@ public final class FileObservable {
         }
 
         public Observable<byte[]> tail() {
-            return tailFile(file, startPosition, sampleTimeMs, chunkSize, source);
+
+            return tailFile(file, startPosition, sampleTimeMs, chunkSize, getSource());
         }
 
         public Observable<String> tailText() {
-            return tailTextFile(file, startPosition, chunkSize, charset, source);
+            return tailTextFile(file, startPosition, chunkSize, charset, getSource());
         }
+
+        private Observable<?> getSource() {
+            if (source == null)
+                return from(file, onWatchStarted, StandardWatchEventKinds.ENTRY_CREATE,
+                        StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.OVERFLOW);
+            else
+                return source;
+
+        }
+
     }
 
 }
