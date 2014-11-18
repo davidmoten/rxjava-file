@@ -23,7 +23,6 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.target>1.7</maven.compiler.target>
-        <rxjava.version>0.20.6</rxjava.version>
 
         <cobertura.version>2.6</cobertura.version>
         <checkstyle.version>2.11</checkstyle.version>
@@ -81,15 +80,15 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.netflix.rxjava</groupId>
-            <artifactId>rxjava-core</artifactId>
-            <version>${rxjava.version}</version>
+            <groupId>io.reactivex</groupId>
+            <artifactId>rxjava</artifactId>
+            <version>1.0.0</version>
         </dependency>
         
         <dependency>
-            <groupId>com.netflix.rxjava</groupId>
+            <groupId>io.reactivex</groupId>
             <artifactId>rxjava-string</artifactId>
-            <version>${rxjava.version}</version>
+            <version>0.22.0</version>
         </dependency>
 
         <!-- Test Dependencies -->
