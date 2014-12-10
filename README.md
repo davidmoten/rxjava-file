@@ -1,5 +1,6 @@
 rxjava-file
 ===========
+<a href="https://travis-ci.org/davidmoten/rxjava-file"><img src="https://travis-ci.org/davidmoten/rxjava-file.svg"/></a>
 
 Status: *released to Maven Central*
 
@@ -12,8 +13,6 @@ Observable utilities for files:
 * stream ```WatchEvent```s from a ```WatchService```
 
 [Release Notes](RELEASE_NOTES.md)
-
-Continuous integration with Jenkins: <a href="https://xuml-tools.ci.cloudbees.com/"><img src="https://xuml-tools.ci.cloudbees.com/job/rxjava-file/badge/icon"/></a>
 
 Maven site reports are [here](http://davidmoten.github.io/rxjava-file/index.html) including [javadoc](http://davidmoten.github.io/rxjava-file/apidocs/index.html).
 
