@@ -1,6 +1,7 @@
 rxjava-file
 ===========
-<a href="https://travis-ci.org/davidmoten/rxjava-file"><img src="https://travis-ci.org/davidmoten/rxjava-file.svg"/></a>
+<a href="https://travis-ci.org/davidmoten/rxjava-file"><img src="https://travis-ci.org/davidmoten/rxjava-file.svg"/></a><br/>
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.davidmoten/rxjava-file/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/com.github.davidmoten/rxjava-file)
 
 Status: *released to Maven Central*
 
