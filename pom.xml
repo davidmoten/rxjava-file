@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>rxjava-file</artifactId>
-    <version>0.3</version>
+    <version>0.4-SNAPSHOT</version>
 
     <name>${project.artifactId}</name>
     <description>RxJava file observables</description>
@@ -75,7 +75,7 @@
         <connection>scm:git:git@github.com:davidmoten/rxjava-file.git</connection>
         <developerConnection>scm:git:git@github.com:davidmoten/rxjava-file.git</developerConnection>
         <url>scm:git:git@github.com:davidmoten/rxjava-file.git</url>
-      <tag>0.3</tag>
+      <tag>HEAD</tag>
   </scm>
 
     <dependencies>
