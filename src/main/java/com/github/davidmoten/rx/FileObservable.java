@@ -149,7 +149,7 @@ public final class FileObservable {
      * @return
      */
     public final static Observable<WatchEvent<?>> from(WatchService watchService) {
-        return Observable.from(watchService).lift(new OperatorWatchServiceEvents());
+        return Observable.just(watchService).lift(new OperatorWatchServiceEvents());
     }
 
     /**
