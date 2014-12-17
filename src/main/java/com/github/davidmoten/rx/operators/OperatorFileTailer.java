@@ -82,9 +82,11 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
                 }
                 long length = file.length();
                 if (length > currentPosition.get()) {
+                    try {
+                        final FileInputStream fis = new FileInputStream(file);
+                        fis.skip(currentPosition.get());
                         // apply using method to ensure fis is closed on
                         // termination or unsubscription
-<<<<<<< HEAD
                         return Observable.using(new Func0<InputStream>() {
 
                             @Override
@@ -105,28 +107,11 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
                                         });
                             }
                         }, new Action1<InputStream>() {
-=======
-                        Func0<InputStream> resourceFactory = new Func0<InputStream>() {
-                            @Override
-                            public InputStream call() {
-                                try {
-                                    final FileInputStream fis = new FileInputStream(file);
-                                    fis.skip(currentPosition.get());
-                                    return fis;
-                                } catch (IOException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            }};
-                        Func1<InputStream, Observable<byte[]>> observableFactory = createObservableFactory(
-                                currentPosition, maxBytesPerEmission);
-                        Action1<InputStream> disposeAction = new Action1<InputStream>() {
->>>>>>> af848d22b776b5286ab49c817ec42ee8f333f940
                             @Override
                             public void call(InputStream is) {
                                 try {
                                     is.close();
                                 } catch (IOException e) {
-<<<<<<< HEAD
                                     // don't care
                                 }
                             }
@@ -134,60 +119,10 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
                     } catch (IOException e) {
                         return Observable.error(e);
                     }
-=======
-                                    throw new RuntimeException(e);
-                                }
-                            }};
-                        return Observable.using(resourceFactory, observableFactory,disposeAction);
->>>>>>> af848d22b776b5286ab49c817ec42ee8f333f940
                 } else
                     return Observable.empty();
             }
 
-        };
-    }
-
-<<<<<<< HEAD
-    private static Func0<Subscription> createSubscriptionFactory(final InputStream is) {
-        return new Func0<Subscription>() {
-
-            @Override
-            public Subscription call() {
-                return Subscriptions.create(new Action0() {
-                    @Override
-                    public void call() {
-                        try {
-                            is.close();
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                });
-            }
-        };
-    }
-
-    private static Func1<Subscription, Observable<byte[]>> createObservableFactory(
-            final FileInputStream fis, final AtomicLong currentPosition,
-            final int maxBytesPerEmission) {
-        return new Func1<Subscription, Observable<byte[]>>() {
-=======
-    private static Func1<InputStream, Observable<byte[]>> createObservableFactory(
-            final AtomicLong currentPosition, final int maxBytesPerEmission) {
-        return new Func1<InputStream, Observable<byte[]>>() {
->>>>>>> af848d22b776b5286ab49c817ec42ee8f333f940
-
-            @Override
-            public Observable<byte[]> call(InputStream is) {
-                return StringObservable.from(is, maxBytesPerEmission)
-                // move marker
-                        .doOnNext(new Action1<byte[]>() {
-                            @Override
-                            public void call(byte[] bytes) {
-                                currentPosition.addAndGet(bytes.length);
-                            }
-                        });
-            }
         };
     }
 
