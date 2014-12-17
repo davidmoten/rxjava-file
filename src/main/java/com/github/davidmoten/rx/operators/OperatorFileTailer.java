@@ -11,15 +11,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import rx.Observable;
 import rx.Observable.Operator;
 import rx.Subscriber;
-import rx.Subscription;
-import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.observables.StringObservable;
 import rx.observers.Subscribers;
 import rx.subjects.PublishSubject;
-import rx.subscriptions.Subscriptions;
 
 /**
  * Reacts to source events by emitting new lines written to a file since the
@@ -85,11 +82,9 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
                 }
                 long length = file.length();
                 if (length > currentPosition.get()) {
-                    try {
-                        final FileInputStream fis = new FileInputStream(file);
-                        fis.skip(currentPosition.get());
                         // apply using method to ensure fis is closed on
                         // termination or unsubscription
+<<<<<<< HEAD
                         return Observable.using(new Func0<InputStream>() {
 
                             @Override
@@ -110,11 +105,28 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
                                         });
                             }
                         }, new Action1<InputStream>() {
+=======
+                        Func0<InputStream> resourceFactory = new Func0<InputStream>() {
+                            @Override
+                            public InputStream call() {
+                                try {
+                                    final FileInputStream fis = new FileInputStream(file);
+                                    fis.skip(currentPosition.get());
+                                    return fis;
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }};
+                        Func1<InputStream, Observable<byte[]>> observableFactory = createObservableFactory(
+                                currentPosition, maxBytesPerEmission);
+                        Action1<InputStream> disposeAction = new Action1<InputStream>() {
+>>>>>>> af848d22b776b5286ab49c817ec42ee8f333f940
                             @Override
                             public void call(InputStream is) {
                                 try {
                                     is.close();
                                 } catch (IOException e) {
+<<<<<<< HEAD
                                     // don't care
                                 }
                             }
@@ -122,6 +134,12 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
                     } catch (IOException e) {
                         return Observable.error(e);
                     }
+=======
+                                    throw new RuntimeException(e);
+                                }
+                            }};
+                        return Observable.using(resourceFactory, observableFactory,disposeAction);
+>>>>>>> af848d22b776b5286ab49c817ec42ee8f333f940
                 } else
                     return Observable.empty();
             }
@@ -129,6 +147,7 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
         };
     }
 
+<<<<<<< HEAD
     private static Func0<Subscription> createSubscriptionFactory(final InputStream is) {
         return new Func0<Subscription>() {
 
@@ -152,10 +171,15 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
             final FileInputStream fis, final AtomicLong currentPosition,
             final int maxBytesPerEmission) {
         return new Func1<Subscription, Observable<byte[]>>() {
+=======
+    private static Func1<InputStream, Observable<byte[]>> createObservableFactory(
+            final AtomicLong currentPosition, final int maxBytesPerEmission) {
+        return new Func1<InputStream, Observable<byte[]>>() {
+>>>>>>> af848d22b776b5286ab49c817ec42ee8f333f940
 
             @Override
-            public Observable<byte[]> call(Subscription subscription) {
-                return StringObservable.from(fis, maxBytesPerEmission)
+            public Observable<byte[]> call(InputStream is) {
+                return StringObservable.from(is, maxBytesPerEmission)
                 // move marker
                         .doOnNext(new Action1<byte[]>() {
                             @Override
