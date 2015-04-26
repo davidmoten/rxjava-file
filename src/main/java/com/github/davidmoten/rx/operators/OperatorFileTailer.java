@@ -16,7 +16,8 @@ import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.observables.StringObservable;
 import rx.observers.Subscribers;
-import rx.subjects.PublishSubject;
+
+import com.github.davidmoten.rx.subjects.SingleSubscribeSubject;
 
 /**
  * Reacts to source events by emitting new lines written to a file since the
@@ -56,7 +57,7 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
 
     @Override
     public Subscriber<? super Object> call(Subscriber<? super byte[]> child) {
-        final PublishSubject<? super Object> subject = PublishSubject.create();
+        final SingleSubscribeSubject<? super Object> subject = SingleSubscribeSubject.create();
         Subscriber<? super Object> parent = Subscribers.from(subject);
         child.add(parent);
         subject
