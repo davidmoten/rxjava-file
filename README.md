@@ -34,7 +34,7 @@ How to build
 ```bash
 git clone https://github.com/davidmoten/rxjava-file
 cd rxjava-file
-maven clean install 
+mvn clean install 
 ```
 
 Examples
@@ -51,7 +51,7 @@ import java.io.File;
  
 Observable<String> items = 
      FileObservable.tailer()
-                   .file("var/log/server.log")
+                   .file("/var/log/server.log")
                    .startPosition(0)
                    .sampleTimeMs(500)
                    .chunkSize(8192)
@@ -63,7 +63,7 @@ or, using defaults (will use default charset):
 ```java
 Observable<String> items = 
      FileObservable.tailer()
-                   .file("var/log/server.log")
+                   .file("/var/log/server.log")
                    .tailText();
 ```
 
