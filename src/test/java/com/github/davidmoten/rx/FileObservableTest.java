@@ -31,6 +31,7 @@ import rx.Observer;
 import rx.Subscription;
 import rx.functions.Action0;
 import rx.functions.Action1;
+import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
 public class FileObservableTest {
@@ -40,8 +41,8 @@ public class FileObservableTest {
         File file = new File("target/does-not-exist");
         Observable<WatchEvent<?>> events = FileObservable.from(file, ENTRY_MODIFY);
         final CountDownLatch latch = new CountDownLatch(1);
-        Subscription sub = events.subscribeOn(Schedulers.io()).subscribe(
-                new Observer<WatchEvent<?>>() {
+        Subscription sub = events.subscribeOn(Schedulers.io())
+                .subscribe(new Observer<WatchEvent<?>>() {
 
                     @Override
                     public void onCompleted() {
@@ -64,8 +65,8 @@ public class FileObservableTest {
     }
 
     @Test
-    public void testCreateAndModifyEventsForANonDirectoryFile() throws InterruptedException,
-            IOException {
+    public void testCreateAndModifyEventsForANonDirectoryFile()
+            throws InterruptedException, IOException {
         File file = new File("target/f");
         file.delete();
         Observable<WatchEvent<?>> events = FileObservable.from(file, ENTRY_CREATE, ENTRY_MODIFY);
@@ -74,8 +75,8 @@ public class FileObservableTest {
         final List<Kind<?>> eventKinds = Mockito.mock(List.class);
         InOrder inOrder = Mockito.inOrder(eventKinds);
         final AtomicInteger errorCount = new AtomicInteger(0);
-        Subscription sub = events.subscribeOn(Schedulers.io()).subscribe(
-                new Observer<WatchEvent<?>>() {
+        Subscription sub = events.subscribeOn(Schedulers.io())
+                .subscribe(new Observer<WatchEvent<?>>() {
 
                     @Override
                     public void onCompleted() {
@@ -142,8 +143,8 @@ public class FileObservableTest {
     }
 
     @Test
-    public void testFileTailingWhenFileIsCreatedAfterSubscription() throws InterruptedException,
-            IOException {
+    public void testFileTailingWhenFileIsCreatedAfterSubscription()
+            throws InterruptedException, IOException {
         final File log = new File("target/test.log");
         log.delete();
 
@@ -191,16 +192,17 @@ public class FileObservableTest {
     }
 
     @Test
-    public void testTailTextFileStreamsFromEndOfFileIfSpecified() throws FileNotFoundException,
-            InterruptedException {
+    public void testTailTextFileStreamsFromEndOfFileIfSpecified()
+            throws FileNotFoundException, InterruptedException {
         File file = new File("target/test1.txt");
         file.delete();
         PrintStream out = new PrintStream(file);
         out.println("line 1");
         out.flush();
         final List<String> list = new ArrayList<String>();
-        Subscription sub = FileObservable.tailer().file(file).startPosition(file.length())
-                .sampleTimeMs(10).utf8().tailText()
+        TestSubscriber<String> ts = TestSubscriber.create();
+        FileObservable.tailer().file(file).startPosition(file.length()).sampleTimeMs(10).utf8()
+                .tailText()
                 // for each
                 .doOnNext(new Action1<String>() {
 
@@ -209,20 +211,20 @@ public class FileObservableTest {
                         System.out.println(line);
                         list.add(line);
                     }
-                }).subscribeOn(Schedulers.newThread()).subscribe();
-        Thread.sleep(100);
+                }).subscribeOn(Schedulers.newThread()).subscribe(ts);
+        Thread.sleep(1000);
         assertTrue(list.isEmpty());
         out.println("line 2");
         out.flush();
-        Thread.sleep(100);
+        Thread.sleep(1000);
         assertEquals(Arrays.asList("line 2"), list);
-        sub.unsubscribe();
+        ts.unsubscribe();
         out.close();
     }
 
     @Test
-    public void testTailTextFileStreamsFromEndOfFileIfDeleteOccurs() throws InterruptedException,
-            IOException {
+    public void testTailTextFileStreamsFromEndOfFileIfDeleteOccurs()
+            throws InterruptedException, IOException {
         File file = new File("target/test2.txt");
         file.delete();
         PrintStream out = new PrintStream(file);
