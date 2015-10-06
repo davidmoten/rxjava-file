@@ -73,9 +73,9 @@
 	</developers>
 
 	<scm>
-		<connection>scm:git:git@github.com:davidmoten/rxjava-file.git</connection>
-		<developerConnection>scm:git:git@github.com:davidmoten/rxjava-file.git</developerConnection>
-		<url>scm:git:git@github.com:davidmoten/rxjava-file.git</url>
+		<connection>scm:git:https://github.com/davidmoten/rxjava-file.git</connection>
+		<developerConnection>scm:git:https://github.com/davidmoten/rxjava-file.git</developerConnection>
+		<url>scm:git:https://github.com/davidmoten/rxjava-file.git</url>
 		<tag>HEAD</tag>
 	</scm>
 
@@ -83,20 +83,20 @@
 		<dependency>
 			<groupId>io.reactivex</groupId>
 			<artifactId>rxjava</artifactId>
-			<version>1.0.10</version>
+			<version>1.0.14</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.github.davidmoten</groupId>
 			<artifactId>rxjava-extras</artifactId>
-			<version>0.5.2</version>
+			<version>0.6.7-SNAPSHOT</version>
 		</dependency>
 
-		<dependency>
-			<groupId>io.reactivex</groupId>
-			<artifactId>rxjava-string</artifactId>
-			<version>0.22.0</version>
-		</dependency>
+<!-- 		<dependency> -->
+<!-- 			<groupId>io.reactivex</groupId> -->
+<!-- 			<artifactId>rxjava-string</artifactId> -->
+<!-- 			<version>0.22.0</version> -->
+<!-- 		</dependency> -->
 
 		<!-- Test Dependencies -->
 		<dependency>
@@ -118,7 +118,7 @@
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.1</version>
+				<version>3.3</version>
 				<configuration>
 					<source>${maven.compiler.target}</source>
 					<target>${maven.compiler.target}</target>

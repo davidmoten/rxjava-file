@@ -10,6 +10,9 @@ import java.nio.file.WatchEvent.Kind;
 import java.nio.file.WatchService;
 import java.util.concurrent.TimeUnit;
 
+import com.github.davidmoten.rx.operators.OperatorFileTailer;
+import com.github.davidmoten.rx.operators.OperatorWatchServiceEvents;
+
 import rx.Observable;
 import rx.Observable.OnSubscribe;
 import rx.Subscriber;
@@ -17,10 +20,6 @@ import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.observables.GroupedObservable;
-import rx.observables.StringObservable;
-
-import com.github.davidmoten.rx.operators.OperatorFileTailer;
-import com.github.davidmoten.rx.operators.OperatorWatchServiceEvents;
 
 /**
  * Observable utility methods related to {@link File}.
@@ -55,11 +54,12 @@ public final class FileObservable {
             long sampleTimeMs, int chunkSize) {
         Observable<Object> events = from(file, StandardWatchEventKinds.ENTRY_CREATE,
                 StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.OVERFLOW)
-        // don't care about the event details, just that there is one
-                .cast(Object.class)
-                // get lines once on subscription so we tail the lines
-                // in the file at startup
-                .startWith(new Object());
+                        // don't care about the event details, just that there
+                        // is one
+                        .cast(Object.class)
+                        // get lines once on subscription so we tail the lines
+                        // in the file at startup
+                        .startWith(new Object());
         return tailFile(file, startPosition, sampleTimeMs, chunkSize, events);
     }
 
@@ -89,7 +89,7 @@ public final class FileObservable {
     public final static Observable<byte[]> tailFile(File file, long startPosition,
             long sampleTimeMs, int chunkSize, Observable<?> events) {
         return sampleModifyOrOverflowEventsOnly(events, sampleTimeMs)
-        // tail file triggered by events
+                // tail file triggered by events
                 .lift(new OperatorFileTailer(file, startPosition, chunkSize));
     }
 
@@ -137,7 +137,8 @@ public final class FileObservable {
      */
     public final static Observable<String> tailTextFile(File file, long startPosition,
             int chunkSize, Charset charset, Observable<?> events) {
-        return toLines(events.lift(new OperatorFileTailer(file, startPosition, chunkSize)), charset);
+        return toLines(events.lift(new OperatorFileTailer(file, startPosition, chunkSize))
+                .onBackpressureBuffer(), charset);
     }
 
     /**
@@ -149,7 +150,8 @@ public final class FileObservable {
      * @return
      */
     public final static Observable<WatchEvent<?>> from(WatchService watchService) {
-        return Observable.just(watchService).lift(new OperatorWatchServiceEvents());
+        return Observable.just(watchService).lift(new OperatorWatchServiceEvents())
+                .onBackpressureBuffer();
     }
 
     /**
@@ -190,7 +192,7 @@ public final class FileObservable {
     public final static Observable<WatchEvent<?>> from(final File file,
             final Action0 onWatchStarted, Kind<?>... kinds) {
         return watchService(file, kinds)
-        // when watch service created call onWatchStarted
+                // when watch service created call onWatchStarted
                 .doOnNext(new Action1<WatchService>() {
                     @Override
                     public void call(WatchService w) {
@@ -280,7 +282,7 @@ public final class FileObservable {
     }
 
     private static Observable<String> toLines(Observable<byte[]> bytes, Charset charset) {
-        return StringObservable.split(StringObservable.decode(bytes, charset), "\n");
+        return Strings.split(Strings.decode(bytes, charset), "\n");
     }
 
     private final static Func1<WatchService, Observable<WatchEvent<?>>> TO_WATCH_EVENTS = new Func1<WatchService, Observable<WatchEvent<?>>>() {
@@ -294,7 +296,7 @@ public final class FileObservable {
     private static Observable<Object> sampleModifyOrOverflowEventsOnly(Observable<?> events,
             final long sampleTimeMs) {
         return events
-        // group by true if is modify or overflow, false otherwise
+                // group by true if is modify or overflow, false otherwise
                 .groupBy(IS_MODIFY_OR_OVERFLOW)
                 // only sample if is modify or overflow
                 .flatMap(sampleIfTrue(sampleTimeMs));

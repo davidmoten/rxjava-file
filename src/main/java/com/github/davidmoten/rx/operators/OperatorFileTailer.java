@@ -8,16 +8,16 @@ import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.github.davidmoten.rx.Bytes;
+import com.github.davidmoten.rx.subjects.PublishSubjectSingleSubscriber;
+
 import rx.Observable;
 import rx.Observable.Operator;
 import rx.Subscriber;
 import rx.functions.Action1;
 import rx.functions.Func0;
 import rx.functions.Func1;
-import rx.observables.StringObservable;
 import rx.observers.Subscribers;
-
-import com.github.davidmoten.rx.subjects.SingleSubscribeSubject;
 
 /**
  * Reacts to source events by emitting new lines written to a file since the
@@ -57,13 +57,14 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
 
     @Override
     public Subscriber<? super Object> call(Subscriber<? super byte[]> child) {
-        final SingleSubscribeSubject<? super Object> subject = SingleSubscribeSubject.create();
+        final PublishSubjectSingleSubscriber<? super Object> subject = PublishSubjectSingleSubscriber
+                .create();
         Subscriber<? super Object> parent = Subscribers.from(subject);
         child.add(parent);
         subject
-        // report new lines for each event
-        .concatMap(reportNewLines(file, currentPosition, maxBytesPerEmission))
-        // subscribe
+                // report new lines for each event
+                .concatMap(reportNewLines(file, currentPosition, maxBytesPerEmission))
+                // subscribe
                 .unsafeSubscribe(child);
         return parent;
     }
@@ -98,14 +99,14 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
 
                             @Override
                             public Observable<byte[]> call(InputStream t1) {
-                                return StringObservable.from(fis, maxBytesPerEmission)
-                                // move marker
+                                return Bytes.from(fis, maxBytesPerEmission)
+                                        // move marker
                                         .doOnNext(new Action1<byte[]>() {
-                                            @Override
-                                            public void call(byte[] bytes) {
-                                                currentPosition.addAndGet(bytes.length);
-                                            }
-                                        });
+                                    @Override
+                                    public void call(byte[] bytes) {
+                                        currentPosition.addAndGet(bytes.length);
+                                    }
+                                });
                             }
                         }, new Action1<InputStream>() {
                             @Override
