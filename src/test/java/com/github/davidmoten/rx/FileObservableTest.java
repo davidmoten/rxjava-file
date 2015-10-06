@@ -254,7 +254,9 @@ public class FileObservableTest {
             out.println("line 3");
         }
         Thread.sleep(1100);
-        assertEquals(Arrays.asList("line 2", "line 3"), list);
+        assertEquals(2, list.size());
+        assertEquals("line 2", list.get(0).trim());
+        assertEquals("line 3", list.get(1).trim());
         sub.unsubscribe();
     }
 }
