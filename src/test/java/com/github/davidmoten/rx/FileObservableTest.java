@@ -212,11 +212,11 @@ public class FileObservableTest {
                         list.add(line);
                     }
                 }).subscribeOn(Schedulers.newThread()).subscribe(ts);
-        Thread.sleep(1000);
+        Thread.sleep(1100);
         assertTrue(list.isEmpty());
         out.println("line 2");
         out.flush();
-        Thread.sleep(1000);
+        Thread.sleep(1100);
         assertEquals(Arrays.asList("line 2"), list);
         ts.unsubscribe();
         out.close();
@@ -242,7 +242,9 @@ public class FileObservableTest {
                         list.add(line);
                     }
                 }).subscribeOn(Schedulers.newThread()).subscribe();
-        Thread.sleep(100);
+        // delay must be long enough for last update timestamp to change on
+        // windows (resolution to the second)
+        Thread.sleep(1100);
         assertTrue(list.isEmpty());
         out.close();
         // delete file then make it bigger than it was
@@ -251,7 +253,7 @@ public class FileObservableTest {
         out.println("line 2");
         out.println("line 3");
         out.flush();
-        Thread.sleep(100);
+        Thread.sleep(1100);
         assertEquals(Arrays.asList("line 2", "line 3"), list);
         sub.unsubscribe();
         out.close();
