@@ -12,6 +12,8 @@ Observable utilities for files:
 * trigger tail updates using Java 7 and later NIO ```WatchService``` events
 * or trigger tail updates using any Observable
 * stream ```WatchEvent```s from a ```WatchService```
+* backpressure support
+* tested on Linux and Windows 7 (not OSX, help appreciated!)
 
 [Release Notes](RELEASE_NOTES.md)
 
@@ -24,7 +26,7 @@ Add this maven dependency to your pom.xml:
 <dependency>
   <groupId>com.github.davidmoten</groupId>
   <artifactId>rxjava-file</artifactId>
-  <version>0.3.1</version>
+  <version>0.3.3</version>
 </dependency>
 ```
 
