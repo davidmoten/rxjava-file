@@ -218,7 +218,8 @@ public class FileObservableTest {
             out.println("line 2");
         }
         Thread.sleep(1100);
-        assertEquals(Arrays.asList("line 2"), list);
+        assertEquals(1, list.size());
+        assertEquals("line 2", list.get(0).trim());
         ts.unsubscribe();
     }
 
