@@ -196,9 +196,9 @@ public class FileObservableTest {
             throws FileNotFoundException, InterruptedException {
         File file = new File("target/test1.txt");
         file.delete();
-        PrintStream out = new PrintStream(file);
-        out.println("line 1");
-        out.flush();
+        try (PrintStream out = new PrintStream(file)) {
+            out.println("line 1");
+        }
         final List<String> list = new ArrayList<String>();
         TestSubscriber<String> ts = TestSubscriber.create();
         FileObservable.tailer().file(file).startPosition(file.length()).sampleTimeMs(10).utf8()
@@ -214,12 +214,12 @@ public class FileObservableTest {
                 }).subscribeOn(Schedulers.newThread()).subscribe(ts);
         Thread.sleep(1100);
         assertTrue(list.isEmpty());
-        out.println("line 2");
-        out.flush();
+        try (PrintStream out = new PrintStream(new FileOutputStream(file, true))) {
+            out.println("line 2");
+        }
         Thread.sleep(1100);
         assertEquals(Arrays.asList("line 2"), list);
         ts.unsubscribe();
-        out.close();
     }
 
     @Test
@@ -227,9 +227,9 @@ public class FileObservableTest {
             throws InterruptedException, IOException {
         File file = new File("target/test2.txt");
         file.delete();
-        PrintStream out = new PrintStream(file);
-        out.println("line 1");
-        out.flush();
+        try (PrintStream out = new PrintStream(file)) {
+            out.println("line 1");
+        }
         final List<String> list = new ArrayList<String>();
         Subscription sub = FileObservable.tailer().file(file).startPosition(file.length())
                 .sampleTimeMs(10).utf8().tailText()
@@ -246,16 +246,14 @@ public class FileObservableTest {
         // windows (resolution to the second)
         Thread.sleep(1100);
         assertTrue(list.isEmpty());
-        out.close();
         // delete file then make it bigger than it was
         assertTrue(file.delete());
-        out = new PrintStream(file);
-        out.println("line 2");
-        out.println("line 3");
-        out.flush();
+        try (PrintStream out = new PrintStream(new FileOutputStream(file, true))) {
+            out.println("line 2");
+            out.println("line 3");
+        }
         Thread.sleep(1100);
         assertEquals(Arrays.asList("line 2", "line 3"), list);
         sub.unsubscribe();
-        out.close();
     }
 }
