@@ -14,10 +14,9 @@ import com.github.davidmoten.rx.operators.OperatorFileTailer;
 import com.github.davidmoten.rx.operators.OperatorWatchServiceEvents;
 
 import rx.Observable;
-import rx.Observable.OnSubscribe;
-import rx.Subscriber;
 import rx.functions.Action0;
 import rx.functions.Action1;
+import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.observables.GroupedObservable;
 
@@ -219,22 +218,21 @@ public final class FileObservable {
     @SafeVarargs
     public final static Observable<WatchService> watchService(final File file,
             final Kind<?>... kinds) {
-        return Observable.create(new OnSubscribe<WatchService>() {
+        return Observable.defer(new Func0<Observable<WatchService>>() {
 
             @Override
-            public void call(Subscriber<? super WatchService> subscriber) {
+            public Observable<WatchService> call() {
                 try {
                     final Path path = getBasePath(file);
                     WatchService watchService = path.getFileSystem().newWatchService();
                     path.register(watchService, kinds);
-                    subscriber.onNext(watchService);
-                    subscriber.onCompleted();
+                    return Observable.just(watchService);
                 } catch (Exception e) {
-                    subscriber.onError(e);
+                    return Observable.error(e);
                 }
             }
-
         });
+
     }
 
     private final static Path getBasePath(final File file) {
