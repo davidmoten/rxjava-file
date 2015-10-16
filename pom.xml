@@ -48,8 +48,8 @@
 	</licenses>
 
 	<ciManagement>
-		<system>CloudBees</system>
-		<url>https://xuml-tools.ci.cloudbees.com</url>
+		<system>Travis</system>
+		<url>https://travis-ci.org/davidmoten/rxjava-file</url>
 	</ciManagement>
 
 	<issueManagement>
