@@ -80,7 +80,7 @@ To use polling instead (say every 5 seconds):
 
 ```java
 Observable<String> items = 
-                   .tailer()
+     FileObservable.tailer()
                    .file(new File("var/log/server.log"))
                    .source(Observable.interval(5, TimeUnit.SECONDS)
                    .tailText();
