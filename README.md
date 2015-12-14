@@ -26,7 +26,7 @@ Add this maven dependency to your pom.xml:
 <dependency>
   <groupId>com.github.davidmoten</groupId>
   <artifactId>rxjava-file</artifactId>
-  <version>0.3.3</version>
+  <version>0.4</version>
 </dependency>
 ```
 
