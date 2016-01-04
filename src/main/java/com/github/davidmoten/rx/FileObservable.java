@@ -51,15 +51,7 @@ public final class FileObservable {
      */
     public final static Observable<byte[]> tailFile(File file, long startPosition,
             long sampleTimeMs, int chunkSize) {
-        Observable<Object> events = from(file, StandardWatchEventKinds.ENTRY_CREATE,
-                StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.OVERFLOW)
-                        // don't care about the event details, just that there
-                        // is one
-                        .cast(Object.class)
-                        // get lines once on subscription so we tail the lines
-                        // in the file at startup
-                        .startWith(new Object());
-        return tailFile(file, startPosition, sampleTimeMs, chunkSize, events);
+        return tailFile(file, startPosition, sampleTimeMs, chunkSize, getDefaultWatchEventSource(file, null));
     }
 
     /**
@@ -332,6 +324,17 @@ public final class FileObservable {
         }
     };
 
+    private static Observable<Object> getDefaultWatchEventSource(File file, Action0 onWatchStarted) {
+        return from(file, onWatchStarted, StandardWatchEventKinds.ENTRY_CREATE,
+                StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.OVERFLOW)
+                // don't care about the event details, just that there
+                // is one
+                .cast(Object.class)
+                // get lines once on subscription so we tail the lines
+                // in the file at startup
+                .startWith(new Object());
+    }
+
     public static Builder tailer() {
         return new Builder();
     }
@@ -452,12 +455,7 @@ public final class FileObservable {
         }
 
         private Observable<?> getSource() {
-            if (source == null)
-                return from(file, onWatchStarted, StandardWatchEventKinds.ENTRY_CREATE,
-                        StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.OVERFLOW);
-            else
-                return source;
-
+            return source != null ? source : getDefaultWatchEventSource(file, onWatchStarted);
         }
 
     }
