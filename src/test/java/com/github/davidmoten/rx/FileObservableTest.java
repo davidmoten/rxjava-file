@@ -259,4 +259,29 @@ public class FileObservableTest {
         assertEquals("line 3", list.get(1).trim());
         sub.unsubscribe();
     }
+
+    @Test
+    public void testFileTailingExistingLines() throws InterruptedException, IOException {
+        final File log = new File("target/test.log");
+        log.delete();
+        log.createNewFile();
+        append(log, "a0");
+        append(log, "a1");
+        append(log, "a2");
+
+        Observable<String> tailer = FileObservable.tailer().file(log).sampleTimeMs(50).utf8().tailText();
+        final List<String> list = new ArrayList<String>();
+        final CountDownLatch latch = new CountDownLatch(3);
+        Subscription sub = tailer.subscribeOn(Schedulers.io()).subscribe(new Action1<String>() {
+            @Override
+            public void call(String line) {
+                System.out.println("received: '" + line + "'");
+                list.add(line);
+                latch.countDown();
+            }
+        });
+        assertTrue(latch.await(10, TimeUnit.SECONDS));
+        assertEquals(Arrays.asList("a0", "a1", "a2"), list);
+        sub.unsubscribe();
+    }
 }
