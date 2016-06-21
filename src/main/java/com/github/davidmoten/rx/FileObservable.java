@@ -165,7 +165,7 @@ public final class FileObservable {
      * @return
      */
     public final static Observable<WatchEvent<?>> from(WatchService watchService) {
-        return from(watchService, rx.schedulers.Schedulers.io(), 10, TimeUnit.SECONDS);
+        return from(watchService, rx.schedulers.Schedulers.trampoline(), 10, TimeUnit.SECONDS);
     }
 
     /**
