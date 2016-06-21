@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.github.davidmoten.rx.operators.OnSubscribeWatchServiceEvents;
 import com.github.davidmoten.rx.operators.OperatorFileTailer;
+import com.github.davidmoten.rx.util.BackpressureStrategy;
 
 import rx.Observable;
 import rx.Scheduler;
@@ -150,10 +151,17 @@ public final class FileObservable {
      * @return
      */
     public final static Observable<WatchEvent<?>> from(WatchService watchService,
-            Scheduler scheduler, long duration, TimeUnit unit) {
-        return Observable
-                .create(new OnSubscribeWatchServiceEvents(watchService, scheduler, duration, unit))
-                .onBackpressureBuffer();
+            Scheduler scheduler, long duration, TimeUnit unit, BackpressureStrategy backpressureStrategy) {
+        Observable<WatchEvent<?>> o = Observable
+                .create(new OnSubscribeWatchServiceEvents(watchService, scheduler, duration, unit));
+        if (backpressureStrategy == BackpressureStrategy.BUFFER) {
+            return o.onBackpressureBuffer();
+        } else if (backpressureStrategy == BackpressureStrategy.DROP)
+            return o.onBackpressureDrop();
+        else if (backpressureStrategy == BackpressureStrategy.LATEST)
+            return o.onBackpressureLatest();
+        else
+            throw new RuntimeException("unrecognized backpressureStrategy " + backpressureStrategy);
     }
 
     /**
@@ -165,7 +173,8 @@ public final class FileObservable {
      * @return
      */
     public final static Observable<WatchEvent<?>> from(WatchService watchService) {
-        return from(watchService, rx.schedulers.Schedulers.trampoline(), 10, TimeUnit.SECONDS);
+        return from(watchService, rx.schedulers.Schedulers.trampoline(), 1, TimeUnit.SECONDS,
+                BackpressureStrategy.BUFFER);
     }
 
     /**

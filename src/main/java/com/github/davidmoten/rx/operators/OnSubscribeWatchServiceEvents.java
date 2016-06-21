@@ -11,6 +11,7 @@ import rx.Observable.OnSubscribe;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
+import rx.Subscription;
 import rx.functions.Action0;
 import rx.subscriptions.Subscriptions;
 
@@ -33,34 +34,22 @@ public class OnSubscribeWatchServiceEvents implements OnSubscribe<WatchEvent<?>>
     public void call(final Subscriber<? super WatchEvent<?>> subscriber) {
         final Worker worker = scheduler.createWorker();
         subscriber.add(worker);
-        subscriber.add(Subscriptions.create(new Action0() {
-
-            @Override
-            public void call() {
-                try {
-                    watchService.close();
-                } catch (ClosedWatchServiceException e) {
-                    // do nothing
-                } catch (IOException e) {
-                    // do nothing
-                }
-            }
-        }));
+        subscriber.add(createSubscriptionToCloseWatchService(watchService));
         worker.schedule(new Action0() {
             @Override
             public void call() {
-                if (emitEvents(watchService, subscriber)) {
-                    worker.schedule(this, duration, unit);
+                if (emitEvents(watchService, subscriber, duration, unit)) {
+                    worker.schedule(this);
                 }
             }
-        }, duration, unit);
+        });
     }
 
     // returns true if and only there may be more events
     private static boolean emitEvents(WatchService watchService,
-            Subscriber<? super WatchEvent<?>> subscriber) {
+            Subscriber<? super WatchEvent<?>> subscriber, long duration, TimeUnit unit) {
         // get the first event
-        WatchKey key = nextKey(watchService, subscriber);
+        WatchKey key = nextKey(watchService, subscriber, duration, unit);
 
         if (key != null) {
             if (subscriber.isUnsubscribed())
@@ -85,11 +74,11 @@ public class OnSubscribeWatchServiceEvents implements OnSubscribe<WatchEvent<?>>
     }
 
     private static WatchKey nextKey(WatchService watchService,
-            Subscriber<? super WatchEvent<?>> subscriber) {
+            Subscriber<? super WatchEvent<?>> subscriber, long duration, TimeUnit unit) {
         try {
-            // this command blocks but unsubscribe close the watch
-            // service and interrupt it
-            return watchService.take();
+            // this command blocks but unsubscribe closes the watch
+            // service and interrupts it
+            return watchService.poll(duration, unit);
         } catch (ClosedWatchServiceException e) {
             // must have unsubscribed
             if (!subscriber.isUnsubscribed())
@@ -117,4 +106,20 @@ public class OnSubscribeWatchServiceEvents implements OnSubscribe<WatchEvent<?>>
         }
     }
 
+    private final static Subscription createSubscriptionToCloseWatchService(
+            final WatchService watchService) {
+        return Subscriptions.create(new Action0() {
+
+            @Override
+            public void call() {
+                try {
+                    watchService.close();
+                } catch (ClosedWatchServiceException e) {
+                    // do nothing
+                } catch (IOException e) {
+                    // do nothing
+                }
+            }
+        });
+    }
 }
