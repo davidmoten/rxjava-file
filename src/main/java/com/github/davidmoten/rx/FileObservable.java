@@ -10,8 +10,9 @@ import java.nio.file.WatchEvent.Kind;
 import java.nio.file.WatchService;
 import java.util.concurrent.TimeUnit;
 
-import com.github.davidmoten.rx.operators.OnSubscribeWatchServiceEvents;
-import com.github.davidmoten.rx.operators.OperatorFileTailer;
+import com.github.davidmoten.guavamini.Preconditions;
+import com.github.davidmoten.rx.internal.operators.OnSubscribeWatchServiceEvents;
+import com.github.davidmoten.rx.internal.operators.OperatorFileTailer;
 import com.github.davidmoten.rx.util.BackpressureStrategy;
 
 import rx.Observable;
@@ -28,6 +29,10 @@ import rx.observables.GroupedObservable;
 public final class FileObservable {
 
     public static final int DEFAULT_MAX_BYTES_PER_EMISSION = 8192;
+
+    private FileObservable() {
+        // prevent instantiation
+    }
 
     /**
      * Returns an {@link Observable} that uses NIO {@link WatchService} (and a
@@ -53,6 +58,7 @@ public final class FileObservable {
      */
     public final static Observable<byte[]> tailFile(File file, long startPosition,
             long sampleTimeMs, int chunkSize) {
+        Preconditions.checkNotNull(file);
         Observable<Object> events = from(file, StandardWatchEventKinds.ENTRY_CREATE,
                 StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.OVERFLOW)
                         // don't care about the event details, just that there
@@ -89,6 +95,7 @@ public final class FileObservable {
      */
     public final static Observable<byte[]> tailFile(File file, long startPosition,
             long sampleTimeMs, int chunkSize, Observable<?> events) {
+        Preconditions.checkNotNull(file);
         return sampleModifyOrOverflowEventsOnly(events, sampleTimeMs)
                 // tail file triggered by events
                 .lift(new OperatorFileTailer(file, startPosition, chunkSize));
@@ -138,6 +145,9 @@ public final class FileObservable {
      */
     public final static Observable<String> tailTextFile(File file, long startPosition,
             int chunkSize, Charset charset, Observable<?> events) {
+        Preconditions.checkNotNull(file);
+        Preconditions.checkNotNull(charset);
+        Preconditions.checkNotNull(events);
         return toLines(events.lift(new OperatorFileTailer(file, startPosition, chunkSize))
                 .onBackpressureBuffer(), charset);
     }
@@ -151,7 +161,12 @@ public final class FileObservable {
      * @return
      */
     public final static Observable<WatchEvent<?>> from(WatchService watchService,
-            Scheduler scheduler, long duration, TimeUnit unit, BackpressureStrategy backpressureStrategy) {
+            Scheduler scheduler, long duration, TimeUnit unit,
+            BackpressureStrategy backpressureStrategy) {
+        Preconditions.checkNotNull(watchService);
+        Preconditions.checkNotNull(scheduler);
+        Preconditions.checkNotNull(unit);
+        Preconditions.checkNotNull(backpressureStrategy);
         Observable<WatchEvent<?>> o = Observable
                 .create(new OnSubscribeWatchServiceEvents(watchService, scheduler, duration, unit));
         if (backpressureStrategy == BackpressureStrategy.BUFFER) {
