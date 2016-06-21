@@ -10,10 +10,11 @@ import java.nio.file.WatchEvent.Kind;
 import java.nio.file.WatchService;
 import java.util.concurrent.TimeUnit;
 
+import com.github.davidmoten.rx.operators.OnSubscribeWatchServiceEvents;
 import com.github.davidmoten.rx.operators.OperatorFileTailer;
-import com.github.davidmoten.rx.operators.OperatorWatchServiceEvents;
 
 import rx.Observable;
+import rx.Scheduler;
 import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Func0;
@@ -148,9 +149,23 @@ public final class FileObservable {
      *            {@link WatchService} to generate events for
      * @return
      */
-    public final static Observable<WatchEvent<?>> from(WatchService watchService) {
-        return Observable.just(watchService).lift(new OperatorWatchServiceEvents())
+    public final static Observable<WatchEvent<?>> from(WatchService watchService,
+            Scheduler scheduler, long duration, TimeUnit unit) {
+        return Observable
+                .create(new OnSubscribeWatchServiceEvents(watchService, scheduler, duration, unit))
                 .onBackpressureBuffer();
+    }
+
+    /**
+     * Returns an {@link Observable} of {@link WatchEvent}s from a
+     * {@link WatchService}.
+     * 
+     * @param watchService
+     *            {@link WatchService} to generate events for
+     * @return
+     */
+    public final static Observable<WatchEvent<?>> from(WatchService watchService) {
+        return from(watchService, rx.schedulers.Schedulers.io(), 10, TimeUnit.SECONDS);
     }
 
     /**
