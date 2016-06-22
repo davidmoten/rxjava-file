@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.github.davidmoten.guavamini.Optional;
 import com.github.davidmoten.guavamini.Preconditions;
 import com.github.davidmoten.rx.internal.operators.OnSubscribeWatchServiceEvents;
 import com.github.davidmoten.rx.internal.operators.OperatorFileTailer;
@@ -424,7 +425,7 @@ public final class FileObservable {
         private Scheduler scheduler = rx.schedulers.Schedulers.computation();
         private long pollInterval = 0;
         private TimeUnit pollIntervalUnit = TimeUnit.MILLISECONDS;
-        private long pollDuration = Long.MAX_VALUE;
+        private Optional<Long> pollDuration = Optional.absent();
         private TimeUnit pollDurationUnit = TimeUnit.MILLISECONDS;
         private final List<Kind<?>> kinds = new ArrayList<>();
         private BackpressureStrategy backpressureStrategy = BackpressureStrategy.BUFFER;
@@ -441,11 +442,13 @@ public final class FileObservable {
         public WatchEventsBuilder pollInterval(long interval, TimeUnit unit) {
             this.pollInterval = interval;
             this.pollIntervalUnit = unit;
+            if (!pollDuration.isPresent())
+                this.pollDuration = Optional.of(0L);
             return this;
         }
 
         public WatchEventsBuilder pollDuration(long duration, TimeUnit unit) {
-            this.pollDuration = duration;
+            this.pollDuration = Optional.of(duration);
             this.pollDurationUnit = unit;
             return this;
         }
@@ -472,8 +475,9 @@ public final class FileObservable {
                     .flatMap(new Func1<WatchService, Observable<WatchEvent<?>>>() {
                         @Override
                         public Observable<WatchEvent<?>> call(WatchService watchService) {
-                            return from(watchService, scheduler, pollDuration, pollDurationUnit,
-                                    pollInterval, pollIntervalUnit, backpressureStrategy);
+                            return from(watchService, scheduler, pollDuration.or(Long.MAX_VALUE),
+                                    pollDurationUnit, pollInterval, pollIntervalUnit,
+                                    backpressureStrategy);
                         }
                     });
         }

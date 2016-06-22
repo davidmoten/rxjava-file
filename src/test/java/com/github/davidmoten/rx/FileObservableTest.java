@@ -65,13 +65,36 @@ public class FileObservableTest {
     }
 
     @Test
-    public void testCreateAndModifyEventsForANonDirectoryFile()
+    public void testCreateAndModifyEventsForANonDirectoryFileBlockForever()
             throws InterruptedException, IOException {
         File file = new File("target/f");
-        file.delete();
+        Observable<WatchEvent<?>> events = FileObservable.from(file).kind(ENTRY_MODIFY)
+                .kind(ENTRY_CREATE).events();
+        checkCreateAndModifyEvents(file, events);
+    }
+
+    @Test
+    public void testCreateAndModifyEventsForANonDirectoryFilePollEveryInterval()
+            throws InterruptedException, IOException {
+        File file = new File("target/f");
+        Observable<WatchEvent<?>> events = FileObservable.from(file).kind(ENTRY_MODIFY)
+                .kind(ENTRY_CREATE).pollInterval(100, TimeUnit.MILLISECONDS).events();
+        checkCreateAndModifyEvents(file, events);
+    }
+
+    @Test
+    public void testCreateAndModifyEventsForANonDirectoryFileBlockingPollEveryInterval()
+            throws InterruptedException, IOException {
+        File file = new File("target/f");
         Observable<WatchEvent<?>> events = FileObservable.from(file).kind(ENTRY_MODIFY)
                 .kind(ENTRY_CREATE).pollInterval(100, TimeUnit.MILLISECONDS)
                 .pollDuration(100, TimeUnit.MILLISECONDS).events();
+        checkCreateAndModifyEvents(file, events);
+    }
+
+    private void checkCreateAndModifyEvents(File file, Observable<WatchEvent<?>> events)
+            throws InterruptedException, IOException, FileNotFoundException {
+        file.delete();
         final CountDownLatch latch = new CountDownLatch(1);
         @SuppressWarnings("unchecked")
         final List<Kind<?>> eventKinds = Mockito.mock(List.class);

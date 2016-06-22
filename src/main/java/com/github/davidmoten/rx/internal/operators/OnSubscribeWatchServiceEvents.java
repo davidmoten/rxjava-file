@@ -15,7 +15,7 @@ import rx.Subscription;
 import rx.functions.Action0;
 import rx.subscriptions.Subscriptions;
 
-public class OnSubscribeWatchServiceEvents implements OnSubscribe<WatchEvent<?>> {
+public final class OnSubscribeWatchServiceEvents implements OnSubscribe<WatchEvent<?>> {
 
     private final Scheduler scheduler;
     private final WatchService watchService;
