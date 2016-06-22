@@ -93,6 +93,9 @@ public final class FileObservable {
      *            also used as the buffer size for reading from the file. Try
      *            {@link FileObservable#DEFAULT_MAX_BYTES_PER_EMISSION} if you
      *            don't know what to put here.
+     * @param events
+     *            trigger a check for file changes. Use
+     *            {@link Observable#interval(long, TimeUnit)} for example.
      * @return observable of byte arrays
      */
     public final static Observable<byte[]> tailFile(File file, long startPosition,
@@ -138,6 +141,11 @@ public final class FileObservable {
      *            the file to tail, cannot be null
      * @param startPosition
      *            start tailing file at position in bytes
+     * @param chunkSize
+     *            max array size of each element emitted by the Observable. Is
+     *            also used as the buffer size for reading from the file. Try
+     *            {@link FileObservable#DEFAULT_MAX_BYTES_PER_EMISSION} if you
+     *            don't know what to put here.
      * @param charset
      *            the character set to use to decode the bytes to a string
      * @param events
@@ -256,9 +264,11 @@ public final class FileObservable {
      * kinds.
      * 
      * @param file
+     *            file to generate watch events from
      * @param onWatchStarted
      *            called when WatchService is created
      * @param kinds
+     *            kinds of watch events to register for
      * @return observable of watch events
      */
     public final static Observable<WatchEvent<?>> from(final File file,
@@ -496,7 +506,8 @@ public final class FileObservable {
          * The file to tail.
          * 
          * @param file
-         * @return this
+         *            file to tail
+         * @return the builder (this)
          */
         public TailerBuilder file(File file) {
             this.file = file;
@@ -517,6 +528,7 @@ public final class FileObservable {
          * start of file. Defaults to 0.
          * 
          * @param startPosition
+         *            start position
          * @return this
          */
         public TailerBuilder startPosition(long startPosition) {
@@ -532,6 +544,7 @@ public final class FileObservable {
          * (in fact are not requested of NIO).
          * 
          * @param sampleTimeMs
+         *            sample time in ms
          * @return this
          */
         public TailerBuilder sampleTimeMs(long sampleTimeMs) {
@@ -543,6 +556,7 @@ public final class FileObservable {
          * Emissions from the tailed file will be no bigger than this.
          * 
          * @param chunkSize
+         *            chunk size in bytes
          * @return this
          */
         public TailerBuilder chunkSize(int chunkSize) {
@@ -554,6 +568,7 @@ public final class FileObservable {
          * The charset of the file. Only used for tailing a text file.
          * 
          * @param charset
+         *            charset to decode with
          * @return this
          */
         public TailerBuilder charset(Charset charset) {
@@ -565,6 +580,7 @@ public final class FileObservable {
          * The charset of the file. Only used for tailing a text file.
          * 
          * @param charset
+         *            charset to decode the file with
          * @return this
          */
         public TailerBuilder charset(String charset) {

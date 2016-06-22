@@ -36,6 +36,8 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
      *            text file to tail
      * @param startPosition
      *            start tailing the file after this many bytes
+     * @param maxBytesPerEmission
+     *            maximum number of bytes per emission
      */
     public OperatorFileTailer(File file, long startPosition, int maxBytesPerEmission) {
         if (file == null)
@@ -49,7 +51,9 @@ public class OperatorFileTailer implements Operator<byte[], Object> {
      * Constructor. Emits byte arrays of up to 8*1024 bytes.
      * 
      * @param file
+     *            file to tail
      * @param startPosition
+     *            start position in bytes
      */
     public OperatorFileTailer(File file, long startPosition) {
         this(file, startPosition, 8192);
