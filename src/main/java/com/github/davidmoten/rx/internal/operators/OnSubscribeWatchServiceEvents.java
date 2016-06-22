@@ -19,15 +19,16 @@ public class OnSubscribeWatchServiceEvents implements OnSubscribe<WatchEvent<?>>
 
     private final Scheduler scheduler;
     private final WatchService watchService;
-    private final long duration;
-    private final TimeUnit unit;
+    private final long pollDurationMs;
+    private final long pollIntervalMs;
 
     public OnSubscribeWatchServiceEvents(WatchService watchService, Scheduler scheduler,
-            long duration, TimeUnit unit) {
+            long pollDuration, TimeUnit pollDurationUnit, long pollInterval,
+            TimeUnit pollIntervalUnit) {
         this.watchService = watchService;
         this.scheduler = scheduler;
-        this.duration = duration;
-        this.unit = unit;
+        this.pollDurationMs = pollDurationUnit.toMillis(pollDuration);
+        this.pollIntervalMs = pollIntervalUnit.toMillis(pollInterval);
     }
 
     @Override
@@ -38,18 +39,19 @@ public class OnSubscribeWatchServiceEvents implements OnSubscribe<WatchEvent<?>>
         worker.schedule(new Action0() {
             @Override
             public void call() {
-                if (emitEvents(watchService, subscriber, duration, unit)) {
+                if (emitEvents(watchService, subscriber, pollDurationMs, pollIntervalMs)) {
                     worker.schedule(this);
                 }
             }
-        });
+        }, pollIntervalMs, TimeUnit.MILLISECONDS);
     }
 
     // returns true if and only there may be more events
     private static boolean emitEvents(WatchService watchService,
-            Subscriber<? super WatchEvent<?>> subscriber, long duration, TimeUnit unit) {
+            Subscriber<? super WatchEvent<?>> subscriber, long pollDurationMs,
+            long pollIntervalMs) {
         // get the first event
-        WatchKey key = nextKey(watchService, subscriber, duration, unit);
+        WatchKey key = nextKey(watchService, subscriber, pollDurationMs);
 
         if (key != null) {
             if (subscriber.isUnsubscribed())
@@ -74,11 +76,19 @@ public class OnSubscribeWatchServiceEvents implements OnSubscribe<WatchEvent<?>>
     }
 
     private static WatchKey nextKey(WatchService watchService,
-            Subscriber<? super WatchEvent<?>> subscriber, long duration, TimeUnit unit) {
+            Subscriber<? super WatchEvent<?>> subscriber, long pollDurationMs) {
         try {
             // this command blocks but unsubscribe closes the watch
             // service and interrupts it
-            return watchService.poll(duration, unit);
+            if (pollDurationMs == 0) {
+                return watchService.poll();
+            } else if (pollDurationMs == Long.MAX_VALUE) {
+                // blocking
+                return watchService.take();
+            } else {
+                // blocking
+                return watchService.poll(pollDurationMs, TimeUnit.MILLISECONDS);
+            }
         } catch (ClosedWatchServiceException e) {
             // must have unsubscribed
             if (!subscriber.isUnsubscribed())

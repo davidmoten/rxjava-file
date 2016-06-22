@@ -8,6 +8,8 @@ import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchEvent.Kind;
 import java.nio.file.WatchService;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.github.davidmoten.guavamini.Preconditions;
@@ -161,14 +163,15 @@ public final class FileObservable {
      * @return
      */
     public final static Observable<WatchEvent<?>> from(WatchService watchService,
-            Scheduler scheduler, long duration, TimeUnit unit,
-            BackpressureStrategy backpressureStrategy) {
+            Scheduler scheduler, long pollDuration, TimeUnit pollDurationUnit, long pollInterval,
+            TimeUnit pollIntervalUnit, BackpressureStrategy backpressureStrategy) {
         Preconditions.checkNotNull(watchService);
         Preconditions.checkNotNull(scheduler);
-        Preconditions.checkNotNull(unit);
+        Preconditions.checkNotNull(pollDurationUnit);
         Preconditions.checkNotNull(backpressureStrategy);
         Observable<WatchEvent<?>> o = Observable
-                .create(new OnSubscribeWatchServiceEvents(watchService, scheduler, duration, unit));
+                .create(new OnSubscribeWatchServiceEvents(watchService, scheduler, pollDuration,
+                        pollDurationUnit, pollInterval, pollIntervalUnit));
         if (backpressureStrategy == BackpressureStrategy.BUFFER) {
             return o.onBackpressureBuffer();
         } else if (backpressureStrategy == BackpressureStrategy.DROP)
@@ -188,8 +191,8 @@ public final class FileObservable {
      * @return
      */
     public final static Observable<WatchEvent<?>> from(WatchService watchService) {
-        return from(watchService, rx.schedulers.Schedulers.trampoline(), 1, TimeUnit.SECONDS,
-                BackpressureStrategy.BUFFER);
+        return from(watchService, rx.schedulers.Schedulers.trampoline(), Long.MAX_VALUE,
+                TimeUnit.MILLISECONDS, 0, TimeUnit.SECONDS, BackpressureStrategy.BUFFER);
     }
 
     /**
@@ -210,6 +213,25 @@ public final class FileObservable {
     @SafeVarargs
     public final static Observable<WatchEvent<?>> from(final File file, Kind<?>... kinds) {
         return from(file, null, kinds);
+    }
+
+    /**
+     * If file does not exist at subscribe time then is assumed to not be a
+     * directory. If the file is not a directory (bearing in mind the aforesaid
+     * assumption) then a {@link WatchService} is set up on its parent and
+     * {@link WatchEvent}s of the given kinds are filtered to concern the file
+     * in question. If the file is a directory then a {@link WatchService} is
+     * set up on the directory and all events are passed through of the given
+     * kinds.
+     * 
+     * @param file
+     *            file to watch
+     * @param kinds
+     *            event kinds to watch for and emit
+     * @return
+     */
+    public final static Observable<WatchEvent<?>> from(final File file, List<Kind<?>> kinds) {
+        return from(file, null, kinds.toArray(new Kind<?>[] {}));
     }
 
     /**
@@ -371,11 +393,76 @@ public final class FileObservable {
         }
     };
 
-    public static Builder tailer() {
-        return new Builder();
+    public static WatchEventsBuilder from(File file) {
+        return new WatchEventsBuilder(file);
     }
 
-    public static class Builder {
+    public static class WatchEventsBuilder {
+        private final File file;
+        private Scheduler scheduler = rx.schedulers.Schedulers.computation();
+        private long pollInterval = 0;
+        private TimeUnit pollIntervalUnit = TimeUnit.MILLISECONDS;
+        private long pollDuration = Long.MAX_VALUE;
+        private TimeUnit pollDurationUnit = TimeUnit.MILLISECONDS;
+        private final List<Kind<?>> kinds = new ArrayList<>();
+        private BackpressureStrategy backpressureStrategy = BackpressureStrategy.BUFFER;
+
+        private WatchEventsBuilder(File file) {
+            this.file = file;
+        }
+
+        public WatchEventsBuilder scheduler(Scheduler scheduler) {
+            this.scheduler = scheduler;
+            return this;
+        }
+
+        public WatchEventsBuilder pollInterval(long interval, TimeUnit unit) {
+            this.pollInterval = interval;
+            this.pollIntervalUnit = unit;
+            return this;
+        }
+
+        public WatchEventsBuilder pollDuration(long duration, TimeUnit unit) {
+            this.pollDuration = duration;
+            this.pollDurationUnit = unit;
+            return this;
+        }
+
+        public WatchEventsBuilder kind(Kind<?> kind) {
+            this.kinds.add(kind);
+            return this;
+        }
+
+        public WatchEventsBuilder kinds(Kind<?>... kinds) {
+            for (Kind<?> kind : kinds) {
+                this.kinds.add(kind);
+            }
+            return this;
+        }
+
+        public WatchEventsBuilder onBackpressure(BackpressureStrategy strategy) {
+            this.backpressureStrategy = strategy;
+            return this;
+        }
+
+        public Observable<WatchEvent<?>> build() {
+            return watchService(file, kinds.toArray(new Kind<?>[] {}))
+                    .flatMap(new Func1<WatchService, Observable<WatchEvent<?>>>() {
+                        @Override
+                        public Observable<WatchEvent<?>> call(WatchService watchService) {
+                            return from(watchService, scheduler, pollDuration, pollDurationUnit,
+                                    pollInterval, pollIntervalUnit, backpressureStrategy);
+                        }
+                    });
+        }
+
+    }
+
+    public static TailerBuilder tailer() {
+        return new TailerBuilder();
+    }
+
+    public static class TailerBuilder {
 
         private File file = null;
         private long startPosition = 0;
@@ -390,7 +477,7 @@ public final class FileObservable {
             }
         };
 
-        private Builder() {
+        private TailerBuilder() {
         }
 
         /**
@@ -399,16 +486,16 @@ public final class FileObservable {
          * @param file
          * @return this
          */
-        public Builder file(File file) {
+        public TailerBuilder file(File file) {
             this.file = file;
             return this;
         }
 
-        public Builder file(String filename) {
+        public TailerBuilder file(String filename) {
             return file(new File(filename));
         }
 
-        public Builder onWatchStarted(Action0 onWatchStarted) {
+        public TailerBuilder onWatchStarted(Action0 onWatchStarted) {
             this.onWatchStarted = onWatchStarted;
             return this;
         }
@@ -420,7 +507,7 @@ public final class FileObservable {
          * @param startPosition
          * @return this
          */
-        public Builder startPosition(long startPosition) {
+        public TailerBuilder startPosition(long startPosition) {
             this.startPosition = startPosition;
             return this;
         }
@@ -435,7 +522,7 @@ public final class FileObservable {
          * @param sampleTimeMs
          * @return this
          */
-        public Builder sampleTimeMs(long sampleTimeMs) {
+        public TailerBuilder sampleTimeMs(long sampleTimeMs) {
             this.sampleTimeMs = sampleTimeMs;
             return this;
         }
@@ -446,7 +533,7 @@ public final class FileObservable {
          * @param chunkSize
          * @return this
          */
-        public Builder chunkSize(int chunkSize) {
+        public TailerBuilder chunkSize(int chunkSize) {
             this.chunkSize = chunkSize;
             return this;
         }
@@ -457,7 +544,7 @@ public final class FileObservable {
          * @param charset
          * @return this
          */
-        public Builder charset(Charset charset) {
+        public TailerBuilder charset(Charset charset) {
             this.charset = charset;
             return this;
         }
@@ -468,15 +555,15 @@ public final class FileObservable {
          * @param charset
          * @return this
          */
-        public Builder charset(String charset) {
+        public TailerBuilder charset(String charset) {
             return charset(Charset.forName(charset));
         }
 
-        public Builder utf8() {
+        public TailerBuilder utf8() {
             return charset("UTF-8");
         }
 
-        public Builder source(Observable<?> source) {
+        public TailerBuilder source(Observable<?> source) {
             this.source = source;
             return this;
         }

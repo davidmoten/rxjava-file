@@ -69,7 +69,9 @@ public class FileObservableTest {
             throws InterruptedException, IOException {
         File file = new File("target/f");
         file.delete();
-        Observable<WatchEvent<?>> events = FileObservable.from(file, ENTRY_CREATE, ENTRY_MODIFY);
+        Observable<WatchEvent<?>> events = FileObservable.from(file).kind(ENTRY_MODIFY)
+                .kind(ENTRY_CREATE).pollInterval(100, TimeUnit.MILLISECONDS)
+                .pollDuration(100, TimeUnit.MILLISECONDS).build();
         final CountDownLatch latch = new CountDownLatch(1);
         @SuppressWarnings("unchecked")
         final List<Kind<?>> eventKinds = Mockito.mock(List.class);
