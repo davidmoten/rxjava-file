@@ -159,8 +159,20 @@ public final class FileObservable {
      * {@link WatchService}.
      * 
      * @param watchService
-     *            {@link WatchService} to generate events for
-     * @return
+     *            WatchService to generate events from
+     * @param scheduler
+     *            schedules polls of the watchService
+     * @param pollDuration
+     *            duration of each poll
+     * @param pollDurationUnit
+     *            time unit for the duration of each poll
+     * @param pollInterval
+     *            interval between polls of the watchService
+     * @param pollIntervalUnit
+     *            time unit for the interval between polls
+     * @param backpressureStrategy
+     *            backpressures strategy to apply
+     * @return an observable of WatchEvents from watchService
      */
     public final static Observable<WatchEvent<?>> from(WatchService watchService,
             Scheduler scheduler, long pollDuration, TimeUnit pollDurationUnit, long pollInterval,
