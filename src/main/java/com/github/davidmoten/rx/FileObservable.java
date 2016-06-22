@@ -56,7 +56,7 @@ public final class FileObservable {
      *            also used as the buffer size for reading from the file. Try
      *            {@link FileObservable#DEFAULT_MAX_BYTES_PER_EMISSION} if you
      *            don't know what to put here.
-     * @return
+     * @return observable of byte arrays
      */
     public final static Observable<byte[]> tailFile(File file, long startPosition,
             long sampleTimeMs, int chunkSize) {
@@ -93,7 +93,7 @@ public final class FileObservable {
      *            also used as the buffer size for reading from the file. Try
      *            {@link FileObservable#DEFAULT_MAX_BYTES_PER_EMISSION} if you
      *            don't know what to put here.
-     * @return
+     * @return observable of byte arrays
      */
     public final static Observable<byte[]> tailFile(File file, long startPosition,
             long sampleTimeMs, int chunkSize, Observable<?> events) {
@@ -121,7 +121,7 @@ public final class FileObservable {
      *            sample time in millis for MODIFY and OVERFLOW events
      * @param charset
      *            the character set to use to decode the bytes to a string
-     * @return
+     * @return observable of strings
      */
     public final static Observable<String> tailTextFile(File file, long startPosition,
             long sampleTimeMs, Charset charset) {
@@ -143,7 +143,7 @@ public final class FileObservable {
      * @param events
      *            trigger a check for file changes. Use
      *            {@link Observable#interval(long, TimeUnit)} for example.
-     * @return
+     * @return observable of strings
      */
     public final static Observable<String> tailTextFile(File file, long startPosition,
             int chunkSize, Charset charset, Observable<?> events) {
@@ -200,7 +200,7 @@ public final class FileObservable {
      * 
      * @param watchService
      *            {@link WatchService} to generate events for
-     * @return
+     * @return observable of watch events from the watch service
      */
     public final static Observable<WatchEvent<?>> from(WatchService watchService) {
         return from(watchService, rx.schedulers.Schedulers.trampoline(), Long.MAX_VALUE,
@@ -220,7 +220,7 @@ public final class FileObservable {
      *            file to watch
      * @param kinds
      *            event kinds to watch for and emit
-     * @return
+     * @return observable of watch events
      */
     @SafeVarargs
     public final static Observable<WatchEvent<?>> from(final File file, Kind<?>... kinds) {
@@ -240,7 +240,7 @@ public final class FileObservable {
      *            file to watch
      * @param kinds
      *            event kinds to watch for and emit
-     * @return
+     * @return observable of watch events
      */
     public final static Observable<WatchEvent<?>> from(final File file, List<Kind<?>> kinds) {
         return from(file, null, kinds.toArray(new Kind<?>[] {}));
@@ -259,7 +259,7 @@ public final class FileObservable {
      * @param onWatchStarted
      *            called when WatchService is created
      * @param kinds
-     * @return
+     * @return observable of watch events
      */
     public final static Observable<WatchEvent<?>> from(final File file,
             final Action0 onWatchStarted, Kind<?>... kinds) {
@@ -286,7 +286,7 @@ public final class FileObservable {
      *            the file to watch
      * @param kinds
      *            event kinds to watch for
-     * @return
+     * @return observable of watch events
      */
     @SafeVarargs
     public final static Observable<WatchService> watchService(final File file,
@@ -324,7 +324,7 @@ public final class FileObservable {
      * 
      * @param file
      *            the file to restrict events to
-     * @return
+     * @return predicate
      */
     private final static Func1<WatchEvent<?>, Boolean> onlyRelatedTo(final File file) {
         return new Func1<WatchEvent<?>, Boolean>() {
@@ -409,7 +409,7 @@ public final class FileObservable {
         return new WatchEventsBuilder(file);
     }
 
-    public static class WatchEventsBuilder {
+    public static final class WatchEventsBuilder {
         private final File file;
         private Scheduler scheduler = rx.schedulers.Schedulers.computation();
         private long pollInterval = 0;
@@ -457,7 +457,7 @@ public final class FileObservable {
             return this;
         }
 
-        public Observable<WatchEvent<?>> build() {
+        public Observable<WatchEvent<?>> events() {
             return watchService(file, kinds.toArray(new Kind<?>[] {}))
                     .flatMap(new Func1<WatchService, Observable<WatchEvent<?>>>() {
                         @Override
@@ -474,7 +474,7 @@ public final class FileObservable {
         return new TailerBuilder();
     }
 
-    public static class TailerBuilder {
+    public static final class TailerBuilder {
 
         private File file = null;
         private long startPosition = 0;
