@@ -422,7 +422,7 @@ public final class FileObservable {
 
     public static final class WatchEventsBuilder {
         private final File file;
-        private Scheduler scheduler = rx.schedulers.Schedulers.computation();
+        private Optional<Scheduler> scheduler = Optional.absent();
         private long pollInterval = 0;
         private TimeUnit pollIntervalUnit = TimeUnit.MILLISECONDS;
         private Optional<Long> pollDuration = Optional.absent();
@@ -435,7 +435,7 @@ public final class FileObservable {
         }
 
         public WatchEventsBuilder scheduler(Scheduler scheduler) {
-            this.scheduler = scheduler;
+            this.scheduler = Optional.of(scheduler);
             return this;
         }
 
@@ -475,9 +475,18 @@ public final class FileObservable {
                     .flatMap(new Func1<WatchService, Observable<WatchEvent<?>>>() {
                         @Override
                         public Observable<WatchEvent<?>> call(WatchService watchService) {
-                            return from(watchService, scheduler, pollDuration.or(Long.MAX_VALUE),
-                                    pollDurationUnit, pollInterval, pollIntervalUnit,
-                                    backpressureStrategy);
+                            if (!scheduler.isPresent()) {
+                                if (!pollDuration.isPresent() || pollDuration.get() == 0) {
+                                    scheduler = Optional.of(rx.schedulers.Schedulers.computation());
+                                } else {
+                                    // poll will block so don't do on
+                                    // computation()
+                                    scheduler = Optional.of(rx.schedulers.Schedulers.io());
+                                }
+                            }
+                            return from(watchService, scheduler.get(),
+                                    pollDuration.or(Long.MAX_VALUE), pollDurationUnit, pollInterval,
+                                    pollIntervalUnit, backpressureStrategy);
                         }
                     });
         }
