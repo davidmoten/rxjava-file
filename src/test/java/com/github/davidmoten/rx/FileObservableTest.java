@@ -78,7 +78,7 @@ public class FileObservableTest {
     public void testNoEventsThrownIfFileDoesNotExist() throws InterruptedException {
         Path file = fileSystem.getPath("target", "does-not-exist");
         Observable<WatchEvent<?>> events = FileObservable.from(file, ENTRY_MODIFY);
-        
+           
         final CountDownLatch latch = new CountDownLatch(1);
         Subscription sub = events.subscribeOn(Schedulers.io())
                 .subscribe(new Observer<WatchEvent<?>>() {
@@ -100,6 +100,8 @@ public class FileObservableTest {
                     }
                 });
         
+        sleepForWatchEvent();
+                
         assertFalse(latch.await(100, TimeUnit.MILLISECONDS));
         sub.unsubscribe();
     }
@@ -146,7 +148,7 @@ public class FileObservableTest {
         final AtomicBoolean isComplete = new AtomicBoolean();
         final AtomicInteger eventCount = new AtomicInteger();
         final AtomicInteger errorCount = new AtomicInteger();
-        
+                
         Subscription sub = events.subscribeOn(Schedulers.io())
                 .subscribe(new Observer<WatchEvent<?>>() {
 
@@ -166,7 +168,7 @@ public class FileObservableTest {
                         eventCount.incrementAndGet();
                     }
                 });
-
+        
         sleepForWatchEvent();
         
         Files.createFile(file);
@@ -205,9 +207,11 @@ public class FileObservableTest {
                 append(log, "a2");
             }
         }).sampleTimeMs(50).utf8().tailText();
-        
+                
         final List<String> list = new ArrayList<>();
         final AtomicInteger eventCount = new AtomicInteger();
+        
+        sleepForWatchEvent();
         
         Subscription sub = tailer.subscribeOn(Schedulers.io()).subscribe(new Action1<String>() {
             @Override
@@ -216,7 +220,7 @@ public class FileObservableTest {
                 eventCount.incrementAndGet();
             }
         });
-                
+                        
         await().untilAtomic(eventCount, equalTo(3));
         assertEquals(Arrays.asList("a0", "a1", "a2"), list);
         
@@ -245,6 +249,8 @@ public class FileObservableTest {
 						append(log, "a2");
 					}
 				}).tailText();
+		
+		sleepForWatchEvent();
 
         final List<String> list = new ArrayList<String>();
         final AtomicInteger eventCount = new AtomicInteger();
@@ -256,7 +262,7 @@ public class FileObservableTest {
                 eventCount.incrementAndGet();
             }
         });
-        
+                
         await().untilAtomic(eventCount, equalTo(3));
         assertEquals(Arrays.asList("a0", "a1", "a2"), list);
         
@@ -273,7 +279,7 @@ public class FileObservableTest {
         final List<String> list = new ArrayList<>();
         TestSubscriber<String> ts = TestSubscriber.create();
         final AtomicInteger eventCount = new AtomicInteger();
-        
+                
         FileObservable.tailer().file(file).startPosition(Files.size(file)).sampleTimeMs(10).utf8()
                 .tailText()
                 // for each
@@ -286,7 +292,7 @@ public class FileObservableTest {
                 }).subscribeOn(Schedulers.newThread()).subscribe(ts);
         
         sleepForWatchEvent();
-        
+                
         assertTrue(list.isEmpty());
         
         append(file, "line 2");
@@ -307,6 +313,8 @@ public class FileObservableTest {
         final List<String> list = new ArrayList<String>();
         final AtomicInteger eventCount = new AtomicInteger();
         
+        sleepForWatchEvent();
+        
         Subscription sub = FileObservable.tailer().file(file).startPosition(Files.size(file))
                 .sampleTimeMs(10).utf8().tailText()
                 // for each
@@ -317,8 +325,6 @@ public class FileObservableTest {
                         eventCount.incrementAndGet();
                     }
                 }).subscribeOn(Schedulers.newThread()).subscribe();
-
-        sleepForWatchEvent();
         
         assertTrue(list.isEmpty());
         
