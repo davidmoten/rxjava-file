@@ -2,8 +2,10 @@ package com.github.davidmoten.rx;
 
 import java.io.File;
 import java.nio.charset.Charset;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchEvent.Kind;
@@ -38,6 +40,14 @@ public final class FileObservable {
     }
 
     /**
+     * @see {@link #tailFile(Path, long, long, int)}
+     */
+    public final static Observable<byte[]> tailFile(File file, long startPosition,
+            long sampleTimeMs, int chunkSize) {
+        return tailFile(file.toPath(), startPosition, sampleTimeMs, chunkSize);
+    }
+    
+    /**
      * Returns an {@link Observable} that uses NIO {@link WatchService} (and a
      * dedicated thread) to push modified events to an observable that reads and
      * reports new sequences of bytes to a subscriber. The NIO
@@ -59,7 +69,7 @@ public final class FileObservable {
      *            don't know what to put here.
      * @return observable of byte arrays
      */
-    public final static Observable<byte[]> tailFile(File file, long startPosition,
+    public final static Observable<byte[]> tailFile(Path file, long startPosition,
             long sampleTimeMs, int chunkSize) {
         Preconditions.checkNotNull(file);
         Observable<Object> events = from(file, StandardWatchEventKinds.ENTRY_CREATE,
@@ -73,6 +83,14 @@ public final class FileObservable {
         return tailFile(file, startPosition, sampleTimeMs, chunkSize, events);
     }
 
+    /**
+     * @see {@link #tailFile(Path, long, long, int, Observable)
+     */
+    public final static Observable<byte[]> tailFile(File file, long startPosition,
+            long sampleTimeMs, int chunkSize, Observable<?> events) {
+        return tailFile(file.toPath(), startPosition, sampleTimeMs, chunkSize, events);
+    }
+    
     /**
      * Returns an {@link Observable} that uses given given observable to push
      * modified events to an observable that reads and reports new sequences of
@@ -99,7 +117,7 @@ public final class FileObservable {
      *            {@link Observable#interval(long, TimeUnit)} for example.
      * @return observable of byte arrays
      */
-    public final static Observable<byte[]> tailFile(File file, long startPosition,
+    public final static Observable<byte[]> tailFile(Path file, long startPosition,
             long sampleTimeMs, int chunkSize, Observable<?> events) {
         Preconditions.checkNotNull(file);
         return sampleModifyOrOverflowEventsOnly(events, sampleTimeMs)
@@ -107,6 +125,14 @@ public final class FileObservable {
                 .lift(new OperatorFileTailer(file, startPosition, chunkSize));
     }
 
+    /**
+     * @see {@link #tailTextFile(Path, long, long, Charset)}
+     */
+    public final static Observable<String> tailTextFile(File file, long startPosition,
+            long sampleTimeMs, Charset charset) {
+        return tailTextFile(file.toPath(), startPosition, sampleTimeMs, charset);
+    }
+    
     /**
      * Returns an {@link Observable} that uses NIO {@link WatchService} (and a
      * dedicated thread) to push modified events to an observable that reads and
@@ -127,12 +153,20 @@ public final class FileObservable {
      *            the character set to use to decode the bytes to a string
      * @return observable of strings
      */
-    public final static Observable<String> tailTextFile(File file, long startPosition,
+    public final static Observable<String> tailTextFile(Path file, long startPosition,
             long sampleTimeMs, Charset charset) {
         return toLines(tailFile(file, startPosition, sampleTimeMs, DEFAULT_MAX_BYTES_PER_EMISSION),
                 charset);
     }
 
+    /**
+     * @see {@link #tailTextFile(Path, long, int, Charset, Observable)}
+     */
+    public final static Observable<String> tailTextFile(File file, long startPosition,
+            int chunkSize, Charset charset, Observable<?> events) {
+        return tailTextFile(file.toPath(), startPosition, chunkSize, charset, events);
+    }
+    
     /**
      * Returns an {@link Observable} of String that uses the given events stream
      * to trigger checks on file change so that new lines can be read and
@@ -154,7 +188,7 @@ public final class FileObservable {
      *            {@link Observable#interval(long, TimeUnit)} for example.
      * @return observable of strings
      */
-    public final static Observable<String> tailTextFile(File file, long startPosition,
+    public final static Observable<String> tailTextFile(Path file, long startPosition,
             int chunkSize, Charset charset, Observable<?> events) {
         Preconditions.checkNotNull(file);
         Preconditions.checkNotNull(charset);
@@ -216,6 +250,15 @@ public final class FileObservable {
                 TimeUnit.MILLISECONDS, 0, TimeUnit.SECONDS, BackpressureStrategy.BUFFER);
     }
 
+    
+    /**
+     * @see {@link #from(Path, Kind...)}
+     */
+    @SafeVarargs
+    public final static Observable<WatchEvent<?>> from(final File file, Kind<?>... kinds) {
+        return from(file.toPath(), kinds);
+    }
+    
     /**
      * If file does not exist at subscribe time then is assumed to not be a
      * directory. If the file is not a directory (bearing in mind the aforesaid
@@ -231,12 +274,18 @@ public final class FileObservable {
      *            event kinds to watch for and emit
      * @return observable of watch events
      */
-    @SafeVarargs
-    public final static Observable<WatchEvent<?>> from(final File file, Kind<?>... kinds) {
+    public final static Observable<WatchEvent<?>> from(final Path file, Kind<?>... kinds) {
         return from(file, null, kinds);
     }
 
     /**
+     * @see {@link #from(Path, List)}
+     */
+    public final static Observable<WatchEvent<?>> from(final File file, List<Kind<?>> kinds) {
+        return from(file.toPath(), kinds);
+    }
+    
+    /**
      * If file does not exist at subscribe time then is assumed to not be a
      * directory. If the file is not a directory (bearing in mind the aforesaid
      * assumption) then a {@link WatchService} is set up on its parent and
@@ -251,10 +300,18 @@ public final class FileObservable {
      *            event kinds to watch for and emit
      * @return observable of watch events
      */
-    public final static Observable<WatchEvent<?>> from(final File file, List<Kind<?>> kinds) {
+    public final static Observable<WatchEvent<?>> from(final Path file, List<Kind<?>> kinds) {
         return from(file, null, kinds.toArray(new Kind<?>[] {}));
     }
 
+    /**
+     * @see {@link #from(Path, Action0, Kind...)}
+     */
+    public final static Observable<WatchEvent<?>> from(final File file,
+            final Action0 onWatchStarted, Kind<?>... kinds) {
+        return from(file.toPath(), onWatchStarted, kinds);
+    }
+    
     /**
      * If file does not exist at subscribe time then is assumed to not be a
      * directory. If the file is not a directory (bearing in mind the aforesaid
@@ -272,7 +329,7 @@ public final class FileObservable {
      *            kinds of watch events to register for
      * @return observable of watch events
      */
-    public final static Observable<WatchEvent<?>> from(final File file,
+    public final static Observable<WatchEvent<?>> from(final Path file,
             final Action0 onWatchStarted, Kind<?>... kinds) {
         return watchService(file, kinds)
                 // when watch service created call onWatchStarted
@@ -290,6 +347,16 @@ public final class FileObservable {
     }
 
     /**
+     * @see {@link #watchService(Path, Kind...)}
+     */
+    @SafeVarargs
+    public final static Observable<WatchService> watchService(final File file,
+            final Kind<?>... kinds) {
+        return watchService(file.toPath(), kinds);
+
+    }
+    
+    /**
      * Creates a {@link WatchService} on subscribe for the given file and event
      * kinds.
      * 
@@ -299,17 +366,16 @@ public final class FileObservable {
      *            event kinds to watch for
      * @return observable of watch events
      */
-    @SafeVarargs
-    public final static Observable<WatchService> watchService(final File file,
+    public final static Observable<WatchService> watchService(final Path file,
             final Kind<?>... kinds) {
         return Observable.defer(new Func0<Observable<WatchService>>() {
 
             @Override
             public Observable<WatchService> call() {
                 try {
-                    final Path path = getBasePath(file);
-                    WatchService watchService = path.getFileSystem().newWatchService();
-                    path.register(watchService, kinds);
+                    final Path basePath = getBasePath(file);
+                    WatchService watchService = basePath.getFileSystem().newWatchService();
+                    basePath.register(watchService, kinds);
                     return Observable.just(watchService);
                 } catch (Exception e) {
                     return Observable.error(e);
@@ -318,14 +384,11 @@ public final class FileObservable {
         });
 
     }
-
-    private final static Path getBasePath(final File file) {
-        final Path path;
-        if (file.exists() && file.isDirectory())
-            path = Paths.get(file.toURI());
-        else
-            path = Paths.get(file.getParentFile().toURI());
-        return path;
+    
+    private final static Path getBasePath(final Path path) {
+    	return Files.exists(path) && Files.isDirectory(path)
+    			? path
+    			: path.getParent();
     }
 
     /**
@@ -337,14 +400,14 @@ public final class FileObservable {
      *            the file to restrict events to
      * @return predicate
      */
-    private final static Func1<WatchEvent<?>, Boolean> onlyRelatedTo(final File file) {
+    private final static Func1<WatchEvent<?>, Boolean> onlyRelatedTo(final Path path) {
         return new Func1<WatchEvent<?>, Boolean>() {
 
             @Override
             public Boolean call(WatchEvent<?> event) {
 
                 final boolean ok;
-                if (file.isDirectory())
+                if (Files.isDirectory(path))
                     ok = true;
                 else if (StandardWatchEventKinds.OVERFLOW.equals(event.kind()))
                     ok = true;
@@ -352,9 +415,9 @@ public final class FileObservable {
                     Object context = event.context();
                     if (context != null && context instanceof Path) {
                         Path p = (Path) context;
-                        Path basePath = getBasePath(file);
-                        File pFile = new File(basePath.toFile(), p.toString());
-                        ok = pFile.getAbsolutePath().equals(file.getAbsolutePath());
+                        Path basePath = getBasePath(path);
+                        Path pPath = basePath.resolve(p);
+                        ok = pPath.toAbsolutePath().equals(path.toAbsolutePath());
                     } else
                         ok = false;
                 }
@@ -417,11 +480,15 @@ public final class FileObservable {
     };
 
     public static WatchEventsBuilder from(File file) {
-        return new WatchEventsBuilder(file);
+        return from(file.toPath());
+    }
+    
+    public static WatchEventsBuilder from(Path path) {
+        return new WatchEventsBuilder(path);
     }
 
     public static final class WatchEventsBuilder {
-        private final File file;
+        private final Path path;
         private Optional<Scheduler> scheduler = Optional.absent();
         private long pollInterval = 0;
         private TimeUnit pollIntervalUnit = TimeUnit.MILLISECONDS;
@@ -430,8 +497,8 @@ public final class FileObservable {
         private final List<Kind<?>> kinds = new ArrayList<>();
         private BackpressureStrategy backpressureStrategy = BackpressureStrategy.BUFFER;
 
-        private WatchEventsBuilder(File file) {
-            this.file = file;
+        private WatchEventsBuilder(Path path) {
+            this.path = path;
         }
 
         public WatchEventsBuilder scheduler(Scheduler scheduler) {
@@ -471,7 +538,7 @@ public final class FileObservable {
         }
 
         public Observable<WatchEvent<?>> events() {
-            return watchService(file, kinds.toArray(new Kind<?>[] {}))
+            return watchService(path, kinds.toArray(new Kind<?>[] {}))
                     .flatMap(new Func1<WatchService, Observable<WatchEvent<?>>>() {
                         @Override
                         public Observable<WatchEvent<?>> call(WatchService watchService) {
@@ -499,7 +566,7 @@ public final class FileObservable {
 
     public static final class TailerBuilder {
 
-        private File file = null;
+        private Path path = null;
         private long startPosition = 0;
         private long sampleTimeMs = 500;
         private int chunkSize = 8192;
@@ -511,10 +578,18 @@ public final class FileObservable {
                 // do nothing
             }
         };
+		private FileSystem fileSystem = FileSystems.getDefault();
 
         private TailerBuilder() {
         }
 
+        /**
+         * @see {@link #file(Path)}
+         */
+        public TailerBuilder file(File file) {
+            return file(file.toPath());
+        }
+        
         /**
          * The file to tail.
          * 
@@ -522,13 +597,13 @@ public final class FileObservable {
          *            file to tail
          * @return the builder (this)
          */
-        public TailerBuilder file(File file) {
-            this.file = file;
+        public TailerBuilder file(Path file) {
+            this.path = file;
             return this;
         }
 
         public TailerBuilder file(String filename) {
-            return file(new File(filename));
+        	return file(fileSystem.getPath(filename));
         }
 
         public TailerBuilder onWatchStarted(Action0 onWatchStarted) {
@@ -611,16 +686,16 @@ public final class FileObservable {
 
         public Observable<byte[]> tail() {
 
-            return tailFile(file, startPosition, sampleTimeMs, chunkSize, getSource());
+            return tailFile(path, startPosition, sampleTimeMs, chunkSize, getSource());
         }
 
         public Observable<String> tailText() {
-            return tailTextFile(file, startPosition, chunkSize, charset, getSource());
+            return tailTextFile(path, startPosition, chunkSize, charset, getSource());
         }
 
         private Observable<?> getSource() {
             if (source == null)
-                return from(file, onWatchStarted, StandardWatchEventKinds.ENTRY_CREATE,
+                return from(path, onWatchStarted, StandardWatchEventKinds.ENTRY_CREATE,
                         StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.OVERFLOW);
             else
                 return source;
