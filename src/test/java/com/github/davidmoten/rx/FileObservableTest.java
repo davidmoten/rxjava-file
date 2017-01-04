@@ -184,7 +184,7 @@ public class FileObservableTest {
     }
 
 	private ConditionFactory await() {
-		return Awaitility.await().with().pollInterval(10, MILLISECONDS).atMost(200, MILLISECONDS);
+		return Awaitility.await().with().pollInterval(10, MILLISECONDS).atMost(2000, MILLISECONDS);
 	}
 
 	private void sleepForWatchEvent() throws InterruptedException {
