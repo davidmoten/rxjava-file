@@ -20,6 +20,7 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchEvent.Kind;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -30,6 +31,9 @@ import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionFactory;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
@@ -45,17 +49,27 @@ import rx.functions.Action1;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
-
+@RunWith(Parameterized.class)
 public class FileObservableTest {
 
     private FileSystem fileSystem;
+	private Configuration fileSystemConfig;
+    
+    public FileObservableTest(Configuration fileSystemConifg) {
+		this.fileSystemConfig = fileSystemConifg;
+	}
+    
+    @Parameters
+    public static Collection<Configuration> data() {
+		return Arrays
+				.asList(new Configuration[] { Configuration.windows(), Configuration.unix(), Configuration.osX() });
+    }
 
     @Before
 	public void setup() throws IOException {
 		WatchServiceConfiguration watchServiceConfig = WatchServiceConfiguration.polling(10, MILLISECONDS);
-		Configuration fileSystemConfig = Configuration.osX().toBuilder().setWatchServiceConfiguration(watchServiceConfig)
-				.build();
-		this.fileSystem = Jimfs.newFileSystem(fileSystemConfig);
+		Configuration config = fileSystemConfig.toBuilder().setWatchServiceConfiguration(watchServiceConfig).build();
+		this.fileSystem = Jimfs.newFileSystem(config);
 		Path target = fileSystem.getPath("target");
 		Files.createDirectories(target);
 	}
