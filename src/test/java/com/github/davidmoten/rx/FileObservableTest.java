@@ -2,6 +2,7 @@ package com.github.davidmoten.rx;
 
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
@@ -37,6 +38,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
+import com.github.davidmoten.rx.FileObservable.WatchEventsBuilder;
 import com.google.common.jimfs.Configuration;
 import com.google.common.jimfs.Jimfs;
 import com.google.common.jimfs.WatchServiceConfiguration;
@@ -67,7 +69,7 @@ public class FileObservableTest {
 
     @Before
 	public void setup() throws IOException {
-		WatchServiceConfiguration watchServiceConfig = WatchServiceConfiguration.polling(10, MILLISECONDS);
+		WatchServiceConfiguration watchServiceConfig = WatchServiceConfiguration.polling(1, MILLISECONDS);
 		Configuration config = fileSystemConfig.toBuilder().setWatchServiceConfiguration(watchServiceConfig).build();
 		this.fileSystem = Jimfs.newFileSystem(config);
 		Path target = fileSystem.getPath("target");
@@ -99,9 +101,7 @@ public class FileObservableTest {
                         latch.countDown();
                     }
                 });
-        
-        sleepForWatchEvent();
-                
+                        
         assertFalse(latch.await(100, TimeUnit.MILLISECONDS));
         sub.unsubscribe();
     }
@@ -110,34 +110,34 @@ public class FileObservableTest {
     public void testCreateAndModifyEventsForANonDirectoryFileBlockForever()
             throws InterruptedException, IOException {
     	Path file = fileSystem.getPath("target", "f");
-        Observable<WatchEvent<?>> events = FileObservable.from(file).kind(ENTRY_MODIFY)
-                .kind(ENTRY_CREATE).events();
+    	WatchEventsBuilder eventsBuilder = FileObservable.from(file).kind(ENTRY_MODIFY)
+                .kind(ENTRY_CREATE);
                         
-        checkCreateAndModifyEvents(file, events);
+        checkCreateAndModifyEvents(file, eventsBuilder);
     }
 
     @Test
     public void testCreateAndModifyEventsForANonDirectoryFilePollEveryInterval()
             throws InterruptedException, IOException {
     	Path file = fileSystem.getPath("target", "f");
-        Observable<WatchEvent<?>> events = FileObservable.from(file).kind(ENTRY_MODIFY)
-                .kind(ENTRY_CREATE).pollInterval(100, TimeUnit.MILLISECONDS).events();
+    	WatchEventsBuilder eventsBuilder = FileObservable.from(file).kind(ENTRY_MODIFY)
+                .kind(ENTRY_CREATE).pollInterval(10, TimeUnit.MILLISECONDS);
         
-        checkCreateAndModifyEvents(file, events);
+        checkCreateAndModifyEvents(file, eventsBuilder);
     }
 
     @Test
     public void testCreateAndModifyEventsForANonDirectoryFileBlockingPollEveryInterval()
             throws InterruptedException, IOException {
     	Path file = fileSystem.getPath("target", "f");
-        Observable<WatchEvent<?>> events = FileObservable.from(file).kind(ENTRY_MODIFY)
-                .kind(ENTRY_CREATE).pollInterval(100, TimeUnit.MILLISECONDS)
-                .pollDuration(100, TimeUnit.MILLISECONDS).events();
+        WatchEventsBuilder eventsBuilder = FileObservable.from(file).kind(ENTRY_MODIFY)
+                .kind(ENTRY_CREATE).pollInterval(10, TimeUnit.MILLISECONDS)
+                .pollDuration(10, TimeUnit.MILLISECONDS);
         
-        checkCreateAndModifyEvents(file, events);
+        checkCreateAndModifyEvents(file, eventsBuilder);
     }
 
-    private void checkCreateAndModifyEvents(Path file, Observable<WatchEvent<?>> events)
+    private void checkCreateAndModifyEvents(Path file, WatchEventsBuilder eventsBuilder)
             throws InterruptedException, IOException, FileNotFoundException {
     	Files.deleteIfExists(file);
         
@@ -145,16 +145,22 @@ public class FileObservableTest {
         final List<Kind<?>> eventKinds = Mockito.mock(List.class);
         InOrder inOrder = Mockito.inOrder(eventKinds);
         
-        final AtomicBoolean isComplete = new AtomicBoolean();
+        final AtomicBoolean isStarted = new AtomicBoolean();
         final AtomicInteger eventCount = new AtomicInteger();
         final AtomicInteger errorCount = new AtomicInteger();
-                
-        Subscription sub = events.subscribeOn(Schedulers.io())
+                        
+        Subscription sub = eventsBuilder
+        		.onWatchStarted(new Action0() {
+					@Override
+					public void call() {
+						isStarted.set(true);
+					}
+				})
+        		.events().subscribeOn(Schedulers.io())
                 .subscribe(new Observer<WatchEvent<?>>() {
 
                     @Override
                     public void onCompleted() {
-                    	isComplete.set(true);
                     }
 
                     @Override
@@ -169,7 +175,7 @@ public class FileObservableTest {
                     }
                 });
         
-        sleepForWatchEvent();
+        await().untilTrue(isStarted);
         
         Files.createFile(file);
         await().untilAtomic(eventCount, equalTo(1));
@@ -185,34 +191,29 @@ public class FileObservableTest {
         assertEquals(0, errorCount.get());
     }
 
-	private ConditionFactory await() {
-		return Awaitility.await().with().pollInterval(10, MILLISECONDS).atMost(2000, MILLISECONDS);
-	}
-
-	private void sleepForWatchEvent() throws InterruptedException {
-		Thread.sleep(20);
-	}
-
     @Test
     public void testFileTailingFromStartOfFile() throws InterruptedException, IOException {
     	final Path log = fileSystem.getPath("target", "test.log");
     	Files.deleteIfExists(log);
     	Files.createFile(log);
         append(log, "a0");
-
+        
         Observable<String> tailer = FileObservable.tailer().file(log).onWatchStarted(new Action0() {
             @Override
             public void call() {
                 append(log, "a1");
                 append(log, "a2");
             }
-        }).sampleTimeMs(50).utf8().tailText();
+        }).sampleTimeMs(50).utf8().tailText().doOnSubscribe(new Action0() {
+            @Override
+            public void call() {
+            	sleepForWatchEvent();
+            }
+        });
                 
         final List<String> list = new ArrayList<>();
         final AtomicInteger eventCount = new AtomicInteger();
-        
-        sleepForWatchEvent();
-        
+                        
         Subscription sub = tailer.subscribeOn(Schedulers.io()).subscribe(new Action1<String>() {
             @Override
             public void call(String line) {
@@ -220,7 +221,7 @@ public class FileObservableTest {
                 eventCount.incrementAndGet();
             }
         });
-                        
+                                
         await().untilAtomic(eventCount, equalTo(3));
         assertEquals(Arrays.asList("a0", "a1", "a2"), list);
         
@@ -234,10 +235,13 @@ public class FileObservableTest {
     	Files.deleteIfExists(log);
         append(log, "a0");
         
+        final AtomicBoolean isStarted = new AtomicBoolean();
+        
 		Observable<String> tailer = FileObservable.tailer().file(log).startPosition(0).sampleTimeMs(50).utf8()
 				.onWatchStarted(new Action0() {
 					@Override
 					public void call() {
+						isStarted.set(true);
 						try {
 							if (!Files.exists(log)) {
 								Files.createFile(log);
@@ -248,10 +252,13 @@ public class FileObservableTest {
 						append(log, "a1");
 						append(log, "a2");
 					}
-				}).tailText();
+				}).tailText().doOnSubscribe(new Action0() {
+		            @Override
+		            public void call() {
+		            	sleepForWatchEvent();
+		            }
+		        });
 		
-		sleepForWatchEvent();
-
         final List<String> list = new ArrayList<String>();
         final AtomicInteger eventCount = new AtomicInteger();
         
@@ -278,9 +285,16 @@ public class FileObservableTest {
         
         final List<String> list = new ArrayList<>();
         TestSubscriber<String> ts = TestSubscriber.create();
+        final AtomicBoolean isStarted = new AtomicBoolean();
         final AtomicInteger eventCount = new AtomicInteger();
                 
         FileObservable.tailer().file(file).startPosition(Files.size(file)).sampleTimeMs(10).utf8()
+        		.onWatchStarted(new Action0() {
+					@Override
+					public void call() {
+						isStarted.set(true);
+					}
+				})
                 .tailText()
                 // for each
                 .doOnNext(new Action1<String>() {
@@ -289,9 +303,10 @@ public class FileObservableTest {
                         list.add(line);
                         eventCount.incrementAndGet();
                     }
-                }).subscribeOn(Schedulers.newThread()).subscribe(ts);
+                })
+                .subscribeOn(Schedulers.newThread()).subscribe(ts);
         
-        sleepForWatchEvent();
+        await().untilTrue(isStarted);
                 
         assertTrue(list.isEmpty());
         
@@ -312,9 +327,7 @@ public class FileObservableTest {
     	
         final List<String> list = new ArrayList<String>();
         final AtomicInteger eventCount = new AtomicInteger();
-        
-        sleepForWatchEvent();
-        
+                
         Subscription sub = FileObservable.tailer().file(file).startPosition(Files.size(file))
                 .sampleTimeMs(10).utf8().tailText()
                 // for each
@@ -328,9 +341,18 @@ public class FileObservableTest {
         
         assertTrue(list.isEmpty());
         
+        final AtomicBoolean isDeleted = new AtomicBoolean();
+        
+        FileObservable.from(file).kind(ENTRY_DELETE).events().subscribe(new Action1<WatchEvent<?>>() {
+			@Override
+			public void call(WatchEvent<?> t) {
+				isDeleted.set(true);
+			}
+		});
+        
         // delete file then make it bigger than it was
         assertTrue(Files.deleteIfExists(file));
-        sleepForWatchEvent();        
+        await().untilTrue(isDeleted);
                 
         append(file, "line 2");
         await().untilAtomic(eventCount, equalTo(1));
@@ -344,6 +366,18 @@ public class FileObservableTest {
         
         sub.unsubscribe();
     }
+    
+    private ConditionFactory await() {
+		return Awaitility.await().with().pollInterval(1, MILLISECONDS).atMost(200, MILLISECONDS);
+	}
+
+	private void sleepForWatchEvent() {
+		try {
+			Thread.sleep(10);
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
+	}
     
     private static void append(Path file, String line) {
     	try {
