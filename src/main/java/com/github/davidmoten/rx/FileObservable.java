@@ -496,9 +496,20 @@ public final class FileObservable {
         private TimeUnit pollDurationUnit = TimeUnit.MILLISECONDS;
         private final List<Kind<?>> kinds = new ArrayList<>();
         private BackpressureStrategy backpressureStrategy = BackpressureStrategy.BUFFER;
+        private Action0 onWatchStarted = new Action0() {
+            @Override
+            public void call() {
+                // do nothing
+            }
+        };
 
         private WatchEventsBuilder(Path path) {
             this.path = path;
+        }
+        
+        public WatchEventsBuilder onWatchStarted(Action0 onWatchStarted) {
+            this.onWatchStarted = onWatchStarted;
+            return this;
         }
 
         public WatchEventsBuilder scheduler(Scheduler scheduler) {
@@ -539,6 +550,14 @@ public final class FileObservable {
 
         public Observable<WatchEvent<?>> events() {
             return watchService(path, kinds.toArray(new Kind<?>[] {}))
+            		// when watch service created call onWatchStarted
+                    .doOnNext(new Action1<WatchService>() {
+                        @Override
+                        public void call(WatchService w) {
+                            if (onWatchStarted != null)
+                                onWatchStarted.call();
+                        }
+                    })
                     .flatMap(new Func1<WatchService, Observable<WatchEvent<?>>>() {
                         @Override
                         public Observable<WatchEvent<?>> call(WatchService watchService) {
