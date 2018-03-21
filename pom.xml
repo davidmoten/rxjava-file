@@ -22,6 +22,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.target>1.7</maven.compiler.target>
+        <rxjava.version>1.3.7</rxjava.version>
+        <rxjava.extras.version>0.8.0.14</rxjava.extras.version>
 
         <cobertura.version>2.7</cobertura.version>
         <checkstyle.version>2.16</checkstyle.version>
@@ -82,13 +84,13 @@
         <dependency>
             <groupId>io.reactivex</groupId>
             <artifactId>rxjava</artifactId>
-            <version>1.3.6</version>
+            <version>${rxjava.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.github.davidmoten</groupId>
             <artifactId>rxjava-extras</artifactId>
-            <version>0.8.0.12</version>
+            <version>${rxjava.extras.version}</version>
         </dependency>
 
         <dependency>
