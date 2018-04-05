@@ -42,7 +42,7 @@ mvn clean install
 Examples
 --------------
 
-###Tail a text file with NIO
+### Tail a text file with NIO
 
 Tail the lines of the text log file ```/var/log/server.log``` as an ```Observable<String>```:
 
@@ -72,7 +72,7 @@ Observable<String> items =
 Note that if you want the ```Observable<String>``` to be emitting line by line then wrap 
 it with a call like ```StringObservable.split(observable, "\n")```. ```StringObservable``` is in the RxJava *rxjava-string* artifact.
 
-###Tail a text file without NIO
+### Tail a text file without NIO
 
 The above example uses a ```WatchService``` to generate ```WatchEvent```s to prompt rereads of the end of the file to perform the tail.
 
@@ -86,7 +86,7 @@ Observable<String> items =
                    .tailText();
 ```
 
-###Tail a binary file with NIO
+### Tail a binary file with NIO
 ```java
 Observable<byte[]> items = 
      FileObservable.tailer()
@@ -94,7 +94,7 @@ Observable<byte[]> items =
                    .tail();
 ```
 
-###Tail a binary file without NIO
+### Tail a binary file without NIO
 ```java
 Observable<byte[]> items = 
      FileObservable.tailer()
