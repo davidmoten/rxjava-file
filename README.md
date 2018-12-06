@@ -19,6 +19,9 @@ Observable utilities for files:
 
 Maven site reports are [here](http://davidmoten.github.io/rxjava-file/index.html) including [javadoc](http://davidmoten.github.io/rxjava-file/apidocs/index.html).
 
+For RxJava 2.x see [rxjava2-file](https://github.com/davidmoten/rxjava2-file).
+
+
 Getting started
 ----------------
 Add this maven dependency to your pom.xml:
